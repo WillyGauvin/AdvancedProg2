@@ -1,0 +1,544 @@
+@startuml
+
+
+
+
+
+/' Objects '/
+
+class CommandQueue {
+	+~CommandQueue()
+	-_cmdAlloc : ComPtr<ID3D12CommandAllocator>
+	+GetCmdQueue() : ComPtr<ID3D12CommandQueue>
+	-_cmdQueue : ComPtr<ID3D12CommandQueue>
+	-_fence : ComPtr<ID3D12Fence>
+	+GetCmdList() : ComPtr<ID3D12GraphicsCommandList>
+	-_cmdList : ComPtr<ID3D12GraphicsCommandList>
+	-_fenceEvent : HANDLE
+	-_swapChain : shared_ptr<SwapChain>
+	-_fenceValue : unsigned int
+	+Init(ComPtr<ID3D12Device> device, shared_ptr<SwapChain> swapChain) : void
+	+RenderBegin(const D3D12_VIEWPORT* vp, const D3D12_RECT* rect) : void
+	+RenderEnd() : void
+	+WaitSync() : void
+}
+
+
+class ConstantBuffer {
+	+ConstantBuffer()
+	+~ConstantBuffer()
+	-_mappedBuffer : BYTE*
+	-_cbvBuffer : ComPtr<ID3D12Resource>
+	+GetGpuVirtualAddress(unsigned int index) : D3D12_GPU_VIRTUAL_ADDRESS
+	-_currentIndex : unsigned int
+	-_elementCount : unsigned int
+	-_elementSize : unsigned int
+	+Clear() : void
+	-CreateBuffer() : void
+	+Init(unsigned int size, unsigned int count) : void
+	+PushData(int rootParamIndex, void* buffer, unsigned int size) : void
+}
+
+
+class Device {
+	-_debugController : ComPtr<ID3D12Debug>
+	+GetDevice() : ComPtr<ID3D12Device>
+	-_device : ComPtr<ID3D12Device>
+	+GetDXGI() : ComPtr<IDXGIFactory>
+	-_dxgi : ComPtr<IDXGIFactory>
+	+Init() : void
+}
+
+
+class Engine {
+	-_window : WindowInfo
+	+GetCmdQueue() : shared_ptr<CommandQueue>
+	-_cmdQueue : shared_ptr<CommandQueue>
+	+GetCB() : shared_ptr<ConstantBuffer>
+	-_cb : shared_ptr<ConstantBuffer>
+	+GetDevice() : shared_ptr<Device>
+	-_device : shared_ptr<Device>
+	+GetRootSignature() : shared_ptr<RootSignature>
+	-_rootSignature : shared_ptr<RootSignature>
+	+GetSwapChain() : shared_ptr<SwapChain>
+	-_swapChain : shared_ptr<SwapChain>
+	+Init(const WindowInfo& info) : void
+	+Render() : void
+	+RenderBegin() : void
+	+RenderEnd() : void
+	+ResizeWindow(int width, int height) : void
+}
+
+
+class Mesh {
+	-_vertexBuffer : ComPtr<ID3D12Resource>
+	-_vertexCount : unsigned int
+	+Init(vector<Vertex>& vec) : void
+	+Render() : void
+	+SetTransform(const Transform& t) : void
+}
+
+
+class RootSignature {
+	+GetSignature() : ComPtr<ID3D12RootSignature>
+	-_signature : ComPtr<ID3D12RootSignature>
+	+Init(ComPtr<ID3D12Device> device) : void
+}
+
+
+class Shader {
+	-_pipelineState : ComPtr<ID3D12PipelineState>
+	-_errBlob : ComPtr<ID3DBlob>
+	-_psBlob : ComPtr<ID3DBlob>
+	-_vsBlob : ComPtr<ID3DBlob>
+	-CreatePixelShader(const wstring& path, const string& name, const string& version) : void
+	-CreateShader(const wstring& path, const string& name, const string& version, ComPtr<ID3DBlob>& blob, D3D12_SHADER_BYTECODE& shaderByteCode) : void
+	-CreateVertexShader(const wstring& path, const string& name, const string& version) : void
+	+Init(const wstring& path) : void
+	+Update() : void
+}
+
+
+class SwapChain {
+	-_rtvHeap : ComPtr<ID3D12DescriptorHeap>
+	+GetBackRTVBuffer() : ComPtr<ID3D12Resource>
+	+GetRenderTarget(int index) : ComPtr<ID3D12Resource>
+	-_rtvBuffer : ComPtr<ID3D12Resource>
+	+GetSwapChain() : ComPtr<IDXGISwapChain>
+	-_swapChain : ComPtr<IDXGISwapChain>
+	+GetBackRTV() : D3D12_CPU_DESCRIPTOR_HANDLE
+	-_rtvHandle : D3D12_CPU_DESCRIPTOR_HANDLE
+	-_backBufferIndex : unsigned int
+	-CreateRTV(ComPtr<ID3D12Device> device) : void
+	-CreateSwapChain(const WindowInfo& info, ComPtr<IDXGIFactory> dxgi, ComPtr<ID3D12CommandQueue> cmdQueue) : void
+	+Init(const WindowInfo& info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory> dxgi, ComPtr<ID3D12CommandQueue> cmdQueue) : void
+	+Present() : void
+	+SwapIndex() : void
+}
+
+/'
+enum empty {
+	SWAP_CHAIN_BUFFER_COUNT
+}
+
+
+class CD3DX12_BLEND_DESC {
+	+CD3DX12_BLEND_DESC()
+	+CD3DX12_BLEND_DESC(const D3D12_BLEND_DESC& o)
+	+CD3DX12_BLEND_DESC(CD3DX12_DEFAULT)
+	+operatorconstD3D12_BLEND_DESC&() {query}
+	+~CD3DX12_BLEND_DESC()
+}
+
+
+class CD3DX12_BOX {
+	+CD3DX12_BOX()
+	+CD3DX12_BOX(const D3D12_BOX& o)
+	+CD3DX12_BOX(LONG Left, LONG Right)
+	+CD3DX12_BOX(LONG Left, LONG Top, LONG Right, LONG Bottom)
+	+CD3DX12_BOX(LONG Left, LONG Top, LONG Front, LONG Right, LONG Bottom, LONG Back)
+	+operatorconstD3D12_BOX&() {query}
+	+~CD3DX12_BOX()
+}
+
+
+class CD3DX12_CLEAR_VALUE {
+	+CD3DX12_CLEAR_VALUE()
+	+CD3DX12_CLEAR_VALUE(const D3D12_CLEAR_VALUE& o)
+	+CD3DX12_CLEAR_VALUE(DXGI_FORMAT format, const FLOAT color)
+	+CD3DX12_CLEAR_VALUE(DXGI_FORMAT format, FLOAT depth, UINT8 stencil)
+	+operatorconstD3D12_CLEAR_VALUE&() {query}
+}
+
+
+class CD3DX12_CPU_DESCRIPTOR_HANDLE {
+	+CD3DX12_CPU_DESCRIPTOR_HANDLE()
+	+CD3DX12_CPU_DESCRIPTOR_HANDLE(const D3D12_CPU_DESCRIPTOR_HANDLE& o)
+	+CD3DX12_CPU_DESCRIPTOR_HANDLE(CD3DX12_DEFAULT)
+	+CD3DX12_CPU_DESCRIPTOR_HANDLE(_In_ const D3D12_CPU_DESCRIPTOR_HANDLE& other, INT offsetScaledByIncrementSize)
+	+CD3DX12_CPU_DESCRIPTOR_HANDLE(_In_ const D3D12_CPU_DESCRIPTOR_HANDLE& other, INT offsetInDescriptors, UINT descriptorIncrementSize)
+	+Offset(INT offsetInDescriptors, UINT descriptorIncrementSize) : CD3DX12_CPU_DESCRIPTOR_HANDLE&
+	+Offset(INT offsetScaledByIncrementSize) : CD3DX12_CPU_DESCRIPTOR_HANDLE&
+	+operator=(const D3D12_CPU_DESCRIPTOR_HANDLE& other) : CD3DX12_CPU_DESCRIPTOR_HANDLE&
+	+operator!=(_In_ const D3D12_CPU_DESCRIPTOR_HANDLE& other) : bool
+	+operator==(_In_ const D3D12_CPU_DESCRIPTOR_HANDLE& other) : bool
+	+InitOffsetted(_In_ const D3D12_CPU_DESCRIPTOR_HANDLE& base, INT offsetScaledByIncrementSize) : void
+	+InitOffsetted(_In_ const D3D12_CPU_DESCRIPTOR_HANDLE& base, INT offsetInDescriptors, UINT descriptorIncrementSize) : void
+	+{static} InitOffsetted(_Out_ D3D12_CPU_DESCRIPTOR_HANDLE& handle, _In_ const D3D12_CPU_DESCRIPTOR_HANDLE& base, INT offsetScaledByIncrementSize) : void
+	+{static} InitOffsetted(_Out_ D3D12_CPU_DESCRIPTOR_HANDLE& handle, _In_ const D3D12_CPU_DESCRIPTOR_HANDLE& base, INT offsetInDescriptors, UINT descriptorIncrementSize) : void
+}
+
+
+class CD3DX12_DEFAULT {
+}
+
+
+class CD3DX12_DEPTH_STENCIL_DESC {
+	+CD3DX12_DEPTH_STENCIL_DESC()
+	+CD3DX12_DEPTH_STENCIL_DESC(const D3D12_DEPTH_STENCIL_DESC& o)
+	+CD3DX12_DEPTH_STENCIL_DESC(CD3DX12_DEFAULT)
+	+CD3DX12_DEPTH_STENCIL_DESC(BOOL depthEnable, D3D12_DEPTH_WRITE_MASK depthWriteMask, D3D12_COMPARISON_FUNC depthFunc, BOOL stencilEnable, UINT8 stencilReadMask, UINT8 stencilWriteMask, D3D12_STENCIL_OP frontStencilFailOp, D3D12_STENCIL_OP frontStencilDepthFailOp, D3D12_STENCIL_OP frontStencilPassOp, D3D12_COMPARISON_FUNC frontStencilFunc, D3D12_STENCIL_OP backStencilFailOp, D3D12_STENCIL_OP backStencilDepthFailOp, D3D12_STENCIL_OP backStencilPassOp, D3D12_COMPARISON_FUNC backStencilFunc)
+	+operatorconstD3D12_DEPTH_STENCIL_DESC&() {query}
+	+~CD3DX12_DEPTH_STENCIL_DESC()
+}
+
+
+class CD3DX12_DESCRIPTOR_RANGE {
+	+CD3DX12_DESCRIPTOR_RANGE()
+	+CD3DX12_DESCRIPTOR_RANGE(const D3D12_DESCRIPTOR_RANGE& o)
+	+CD3DX12_DESCRIPTOR_RANGE(D3D12_DESCRIPTOR_RANGE_TYPE rangeType, UINT numDescriptors, UINT baseShaderRegister, UINT registerSpace, UINT offsetInDescriptorsFromTableStart)
+	+Init(D3D12_DESCRIPTOR_RANGE_TYPE rangeType, UINT numDescriptors, UINT baseShaderRegister, UINT registerSpace, UINT offsetInDescriptorsFromTableStart) : void
+	+{static} Init(_Out_ D3D12_DESCRIPTOR_RANGE& range, D3D12_DESCRIPTOR_RANGE_TYPE rangeType, UINT numDescriptors, UINT baseShaderRegister, UINT registerSpace, UINT offsetInDescriptorsFromTableStart) : void
+}
+
+
+class CD3DX12_GPU_DESCRIPTOR_HANDLE {
+	+CD3DX12_GPU_DESCRIPTOR_HANDLE()
+	+CD3DX12_GPU_DESCRIPTOR_HANDLE(const D3D12_GPU_DESCRIPTOR_HANDLE& o)
+	+CD3DX12_GPU_DESCRIPTOR_HANDLE(CD3DX12_DEFAULT)
+	+CD3DX12_GPU_DESCRIPTOR_HANDLE(_In_ const D3D12_GPU_DESCRIPTOR_HANDLE& other, INT offsetScaledByIncrementSize)
+	+CD3DX12_GPU_DESCRIPTOR_HANDLE(_In_ const D3D12_GPU_DESCRIPTOR_HANDLE& other, INT offsetInDescriptors, UINT descriptorIncrementSize)
+	+Offset(INT offsetInDescriptors, UINT descriptorIncrementSize) : CD3DX12_GPU_DESCRIPTOR_HANDLE&
+	+Offset(INT offsetScaledByIncrementSize) : CD3DX12_GPU_DESCRIPTOR_HANDLE&
+	+operator=(const D3D12_GPU_DESCRIPTOR_HANDLE& other) : CD3DX12_GPU_DESCRIPTOR_HANDLE&
+	+operator!=(_In_ const D3D12_GPU_DESCRIPTOR_HANDLE& other) : bool
+	+operator==(_In_ const D3D12_GPU_DESCRIPTOR_HANDLE& other) : bool
+	+InitOffsetted(_In_ const D3D12_GPU_DESCRIPTOR_HANDLE& base, INT offsetScaledByIncrementSize) : void
+	+InitOffsetted(_In_ const D3D12_GPU_DESCRIPTOR_HANDLE& base, INT offsetInDescriptors, UINT descriptorIncrementSize) : void
+	+{static} InitOffsetted(_Out_ D3D12_GPU_DESCRIPTOR_HANDLE& handle, _In_ const D3D12_GPU_DESCRIPTOR_HANDLE& base, INT offsetScaledByIncrementSize) : void
+	+{static} InitOffsetted(_Out_ D3D12_GPU_DESCRIPTOR_HANDLE& handle, _In_ const D3D12_GPU_DESCRIPTOR_HANDLE& base, INT offsetInDescriptors, UINT descriptorIncrementSize) : void
+}
+
+
+class CD3DX12_HEAP_DESC {
+	+CD3DX12_HEAP_DESC()
+	+CD3DX12_HEAP_DESC(const D3D12_HEAP_DESC& o)
+	+CD3DX12_HEAP_DESC(UINT64 size, D3D12_HEAP_PROPERTIES properties, UINT64 alignment, D3D12_HEAP_FLAGS flags)
+	+CD3DX12_HEAP_DESC(UINT64 size, D3D12_HEAP_TYPE type, UINT64 alignment, D3D12_HEAP_FLAGS flags)
+	+CD3DX12_HEAP_DESC(UINT64 size, D3D12_CPU_PAGE_PROPERTY cpuPageProperty, D3D12_MEMORY_POOL memoryPoolPreference, UINT64 alignment, D3D12_HEAP_FLAGS flags)
+	+CD3DX12_HEAP_DESC(const D3D12_RESOURCE_ALLOCATION_INFO& resAllocInfo, D3D12_HEAP_PROPERTIES properties, D3D12_HEAP_FLAGS flags)
+	+CD3DX12_HEAP_DESC(const D3D12_RESOURCE_ALLOCATION_INFO& resAllocInfo, D3D12_HEAP_TYPE type, D3D12_HEAP_FLAGS flags)
+	+CD3DX12_HEAP_DESC(const D3D12_RESOURCE_ALLOCATION_INFO& resAllocInfo, D3D12_CPU_PAGE_PROPERTY cpuPageProperty, D3D12_MEMORY_POOL memoryPoolPreference, D3D12_HEAP_FLAGS flags)
+	+operatorconstD3D12_HEAP_DESC&() {query}
+	+IsCPUAccessible() : bool {query}
+}
+
+
+class CD3DX12_HEAP_PROPERTIES {
+	+CD3DX12_HEAP_PROPERTIES()
+	+CD3DX12_HEAP_PROPERTIES(const D3D12_HEAP_PROPERTIES& o)
+	+CD3DX12_HEAP_PROPERTIES(D3D12_CPU_PAGE_PROPERTY cpuPageProperty, D3D12_MEMORY_POOL memoryPoolPreference, UINT creationNodeMask, UINT nodeMask)
+	+CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE type, UINT creationNodeMask, UINT nodeMask)
+	+operatorconstD3D12_HEAP_PROPERTIES&() {query}
+	+IsCPUAccessible() : bool {query}
+}
+
+
+class CD3DX12_PACKED_MIP_INFO {
+	+CD3DX12_PACKED_MIP_INFO()
+	+CD3DX12_PACKED_MIP_INFO(const D3D12_PACKED_MIP_INFO& o)
+	+CD3DX12_PACKED_MIP_INFO(UINT8 numStandardMips, UINT8 numPackedMips, UINT numTilesForPackedMips, UINT startTileIndexInOverallResource)
+	+operatorconstD3D12_PACKED_MIP_INFO&() {query}
+}
+
+
+class CD3DX12_RANGE {
+	+CD3DX12_RANGE()
+	+CD3DX12_RANGE(const D3D12_RANGE& o)
+	+CD3DX12_RANGE(SIZE_T begin, SIZE_T end)
+	+operatorconstD3D12_RANGE&() {query}
+}
+
+
+class CD3DX12_RASTERIZER_DESC {
+	+CD3DX12_RASTERIZER_DESC()
+	+CD3DX12_RASTERIZER_DESC(const D3D12_RASTERIZER_DESC& o)
+	+CD3DX12_RASTERIZER_DESC(CD3DX12_DEFAULT)
+	+CD3DX12_RASTERIZER_DESC(D3D12_FILL_MODE fillMode, D3D12_CULL_MODE cullMode, BOOL frontCounterClockwise, INT depthBias, FLOAT depthBiasClamp, FLOAT slopeScaledDepthBias, BOOL depthClipEnable, BOOL multisampleEnable, BOOL antialiasedLineEnable, UINT forcedSampleCount, D3D12_CONSERVATIVE_RASTERIZATION_MODE conservativeRaster)
+	+operatorconstD3D12_RASTERIZER_DESC&() {query}
+	+~CD3DX12_RASTERIZER_DESC()
+}
+
+
+class CD3DX12_RECT {
+	+CD3DX12_RECT()
+	+CD3DX12_RECT(const D3D12_RECT& o)
+	+CD3DX12_RECT(LONG Left, LONG Top, LONG Right, LONG Bottom)
+	+operatorconstD3D12_RECT&() {query}
+	+~CD3DX12_RECT()
+}
+
+
+class CD3DX12_RESOURCE_ALLOCATION_INFO {
+	+CD3DX12_RESOURCE_ALLOCATION_INFO()
+	+CD3DX12_RESOURCE_ALLOCATION_INFO(const D3D12_RESOURCE_ALLOCATION_INFO& o)
+	+CD3DX12_RESOURCE_ALLOCATION_INFO(UINT64 size, UINT64 alignment)
+	+operatorconstD3D12_RESOURCE_ALLOCATION_INFO&() {query}
+}
+
+
+class CD3DX12_RESOURCE_BARRIER {
+	+CD3DX12_RESOURCE_BARRIER()
+	+CD3DX12_RESOURCE_BARRIER(const D3D12_RESOURCE_BARRIER& o)
+	+operatorconstD3D12_RESOURCE_BARRIER&() {query}
+	+{static} Aliasing(_In_ ID3D12Resource* pResourceBefore, _In_ ID3D12Resource* pResourceAfter) : CD3DX12_RESOURCE_BARRIER
+	+{static} Transition(_In_ ID3D12Resource* pResource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter, UINT subresource, D3D12_RESOURCE_BARRIER_FLAGS flags) : CD3DX12_RESOURCE_BARRIER
+	+{static} UAV(_In_ ID3D12Resource* pResource) : CD3DX12_RESOURCE_BARRIER
+}
+
+
+class CD3DX12_RESOURCE_DESC {
+	+CD3DX12_RESOURCE_DESC()
+	+CD3DX12_RESOURCE_DESC(const D3D12_RESOURCE_DESC& o)
+	+CD3DX12_RESOURCE_DESC(D3D12_RESOURCE_DIMENSION dimension, UINT64 alignment, UINT64 width, UINT height, UINT16 depthOrArraySize, UINT16 mipLevels, DXGI_FORMAT format, UINT sampleCount, UINT sampleQuality, D3D12_TEXTURE_LAYOUT layout, D3D12_RESOURCE_FLAGS flags)
+	+operatorconstD3D12_RESOURCE_DESC&() {query}
+	+{static} Buffer(const D3D12_RESOURCE_ALLOCATION_INFO& resAllocInfo, D3D12_RESOURCE_FLAGS flags) : CD3DX12_RESOURCE_DESC
+	+{static} Buffer(UINT64 width, D3D12_RESOURCE_FLAGS flags, UINT64 alignment) : CD3DX12_RESOURCE_DESC
+	+{static} Tex1D(DXGI_FORMAT format, UINT64 width, UINT16 arraySize, UINT16 mipLevels, D3D12_RESOURCE_FLAGS flags, D3D12_TEXTURE_LAYOUT layout, UINT64 alignment) : CD3DX12_RESOURCE_DESC
+	+{static} Tex2D(DXGI_FORMAT format, UINT64 width, UINT height, UINT16 arraySize, UINT16 mipLevels, UINT sampleCount, UINT sampleQuality, D3D12_RESOURCE_FLAGS flags, D3D12_TEXTURE_LAYOUT layout, UINT64 alignment) : CD3DX12_RESOURCE_DESC
+	+{static} Tex3D(DXGI_FORMAT format, UINT64 width, UINT height, UINT16 depth, UINT16 mipLevels, D3D12_RESOURCE_FLAGS flags, D3D12_TEXTURE_LAYOUT layout, UINT64 alignment) : CD3DX12_RESOURCE_DESC
+	+CalcSubresource(UINT MipSlice, UINT ArraySlice, UINT PlaneSlice) : UINT
+	+Subresources(_In_ ID3D12Device* pDevice) : UINT {query}
+	+ArraySize() : UINT16 {query}
+	+Depth() : UINT16 {query}
+	+PlaneCount(_In_ ID3D12Device* pDevice) : UINT8 {query}
+}
+
+
+class CD3DX12_ROOT_CONSTANTS {
+	+CD3DX12_ROOT_CONSTANTS()
+	+CD3DX12_ROOT_CONSTANTS(const D3D12_ROOT_CONSTANTS& o)
+	+CD3DX12_ROOT_CONSTANTS(UINT num32BitValues, UINT shaderRegister, UINT registerSpace)
+	+Init(UINT num32BitValues, UINT shaderRegister, UINT registerSpace) : void
+	+{static} Init(_Out_ D3D12_ROOT_CONSTANTS& rootConstants, UINT num32BitValues, UINT shaderRegister, UINT registerSpace) : void
+}
+
+
+class CD3DX12_ROOT_DESCRIPTOR {
+	+CD3DX12_ROOT_DESCRIPTOR()
+	+CD3DX12_ROOT_DESCRIPTOR(const D3D12_ROOT_DESCRIPTOR& o)
+	+CD3DX12_ROOT_DESCRIPTOR(UINT shaderRegister, UINT registerSpace)
+	+Init(UINT shaderRegister, UINT registerSpace) : void
+	+{static} Init(_Out_ D3D12_ROOT_DESCRIPTOR& table, UINT shaderRegister, UINT registerSpace) : void
+}
+
+
+class CD3DX12_ROOT_DESCRIPTOR_TABLE {
+	+CD3DX12_ROOT_DESCRIPTOR_TABLE()
+	+CD3DX12_ROOT_DESCRIPTOR_TABLE(const D3D12_ROOT_DESCRIPTOR_TABLE& o)
+	+CD3DX12_ROOT_DESCRIPTOR_TABLE(UINT numDescriptorRanges, _In_reads_opt_ ( numDescriptorRanges ) const D3D12_DESCRIPTOR_RANGE* _pDescriptorRanges)
+	+Init(UINT numDescriptorRanges, _In_reads_ ( numDescriptorRanges ) const D3D12_DESCRIPTOR_RANGE* _pDescriptorRanges) : void
+	+{static} Init(_Out_ D3D12_ROOT_DESCRIPTOR_TABLE& rootDescriptorTable, UINT numDescriptorRanges, _In_reads_opt_ ( numDescriptorRanges ) const D3D12_DESCRIPTOR_RANGE* _pDescriptorRanges) : void
+}
+
+
+class CD3DX12_ROOT_PARAMETER {
+	+CD3DX12_ROOT_PARAMETER()
+	+CD3DX12_ROOT_PARAMETER(const D3D12_ROOT_PARAMETER& o)
+	+{static} InitAsConstantBufferView(_Out_ D3D12_ROOT_PARAMETER& rootParam, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility) : void
+	+InitAsConstantBufferView(UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility) : void
+	+{static} InitAsConstants(_Out_ D3D12_ROOT_PARAMETER& rootParam, UINT num32BitValues, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility) : void
+	+InitAsConstants(UINT num32BitValues, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility) : void
+	+{static} InitAsDescriptorTable(_Out_ D3D12_ROOT_PARAMETER& rootParam, UINT numDescriptorRanges, _In_reads_ ( numDescriptorRanges ) const D3D12_DESCRIPTOR_RANGE* pDescriptorRanges, D3D12_SHADER_VISIBILITY visibility) : void
+	+InitAsDescriptorTable(UINT numDescriptorRanges, _In_reads_ ( numDescriptorRanges ) const D3D12_DESCRIPTOR_RANGE* pDescriptorRanges, D3D12_SHADER_VISIBILITY visibility) : void
+	+{static} InitAsShaderResourceView(_Out_ D3D12_ROOT_PARAMETER& rootParam, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility) : void
+	+InitAsShaderResourceView(UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility) : void
+	+{static} InitAsUnorderedAccessView(_Out_ D3D12_ROOT_PARAMETER& rootParam, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility) : void
+	+InitAsUnorderedAccessView(UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility) : void
+}
+
+
+class CD3DX12_ROOT_SIGNATURE_DESC {
+	+CD3DX12_ROOT_SIGNATURE_DESC()
+	+CD3DX12_ROOT_SIGNATURE_DESC(const D3D12_ROOT_SIGNATURE_DESC& o)
+	+CD3DX12_ROOT_SIGNATURE_DESC(UINT numParameters, _In_reads_opt_ ( numParameters ) const D3D12_ROOT_PARAMETER* _pParameters, UINT numStaticSamplers, _In_reads_opt_ ( numStaticSamplers ) const D3D12_STATIC_SAMPLER_DESC* _pStaticSamplers, D3D12_ROOT_SIGNATURE_FLAGS flags)
+	+CD3DX12_ROOT_SIGNATURE_DESC(CD3DX12_DEFAULT)
+	+Init(UINT numParameters, _In_reads_opt_ ( numParameters ) const D3D12_ROOT_PARAMETER* _pParameters, UINT numStaticSamplers, _In_reads_opt_ ( numStaticSamplers ) const D3D12_STATIC_SAMPLER_DESC* _pStaticSamplers, D3D12_ROOT_SIGNATURE_FLAGS flags) : void
+	+{static} Init(_Out_ D3D12_ROOT_SIGNATURE_DESC& desc, UINT numParameters, _In_reads_opt_ ( numParameters ) const D3D12_ROOT_PARAMETER* _pParameters, UINT numStaticSamplers, _In_reads_opt_ ( numStaticSamplers ) const D3D12_STATIC_SAMPLER_DESC* _pStaticSamplers, D3D12_ROOT_SIGNATURE_FLAGS flags) : void
+}
+
+
+class CD3DX12_STATIC_SAMPLER_DESC {
+	+CD3DX12_STATIC_SAMPLER_DESC()
+	+CD3DX12_STATIC_SAMPLER_DESC(const D3D12_STATIC_SAMPLER_DESC& o)
+	+CD3DX12_STATIC_SAMPLER_DESC(UINT shaderRegister, D3D12_FILTER filter, D3D12_TEXTURE_ADDRESS_MODE addressU, D3D12_TEXTURE_ADDRESS_MODE addressV, D3D12_TEXTURE_ADDRESS_MODE addressW, FLOAT mipLODBias, UINT maxAnisotropy, D3D12_COMPARISON_FUNC comparisonFunc, D3D12_STATIC_BORDER_COLOR borderColor, FLOAT minLOD, FLOAT maxLOD, D3D12_SHADER_VISIBILITY shaderVisibility, UINT registerSpace)
+	+{static} Init(_Out_ D3D12_STATIC_SAMPLER_DESC& samplerDesc, UINT shaderRegister, D3D12_FILTER filter, D3D12_TEXTURE_ADDRESS_MODE addressU, D3D12_TEXTURE_ADDRESS_MODE addressV, D3D12_TEXTURE_ADDRESS_MODE addressW, FLOAT mipLODBias, UINT maxAnisotropy, D3D12_COMPARISON_FUNC comparisonFunc, D3D12_STATIC_BORDER_COLOR borderColor, FLOAT minLOD, FLOAT maxLOD, D3D12_SHADER_VISIBILITY shaderVisibility, UINT registerSpace) : void
+	+Init(UINT shaderRegister, D3D12_FILTER filter, D3D12_TEXTURE_ADDRESS_MODE addressU, D3D12_TEXTURE_ADDRESS_MODE addressV, D3D12_TEXTURE_ADDRESS_MODE addressW, FLOAT mipLODBias, UINT maxAnisotropy, D3D12_COMPARISON_FUNC comparisonFunc, D3D12_STATIC_BORDER_COLOR borderColor, FLOAT minLOD, FLOAT maxLOD, D3D12_SHADER_VISIBILITY shaderVisibility, UINT registerSpace) : void
+}
+
+
+class CD3DX12_SUBRESOURCE_FOOTPRINT {
+	+CD3DX12_SUBRESOURCE_FOOTPRINT()
+	+CD3DX12_SUBRESOURCE_FOOTPRINT(const D3D12_SUBRESOURCE_FOOTPRINT& o)
+	+CD3DX12_SUBRESOURCE_FOOTPRINT(DXGI_FORMAT format, UINT width, UINT height, UINT depth, UINT rowPitch)
+	+CD3DX12_SUBRESOURCE_FOOTPRINT(const D3D12_RESOURCE_DESC& resDesc, UINT rowPitch)
+	+operatorconstD3D12_SUBRESOURCE_FOOTPRINT&() {query}
+}
+
+
+class CD3DX12_SUBRESOURCE_TILING {
+	+CD3DX12_SUBRESOURCE_TILING()
+	+CD3DX12_SUBRESOURCE_TILING(const D3D12_SUBRESOURCE_TILING& o)
+	+CD3DX12_SUBRESOURCE_TILING(UINT widthInTiles, UINT16 heightInTiles, UINT16 depthInTiles, UINT startTileIndexInOverallResource)
+	+operatorconstD3D12_SUBRESOURCE_TILING&() {query}
+}
+
+
+class CD3DX12_TEXTURE_COPY_LOCATION {
+	+CD3DX12_TEXTURE_COPY_LOCATION()
+	+CD3DX12_TEXTURE_COPY_LOCATION(const D3D12_TEXTURE_COPY_LOCATION& o)
+	+CD3DX12_TEXTURE_COPY_LOCATION(ID3D12Resource* pRes)
+	+CD3DX12_TEXTURE_COPY_LOCATION(ID3D12Resource* pRes, D3D12_PLACED_SUBRESOURCE_FOOTPRINT const& Footprint)
+	+CD3DX12_TEXTURE_COPY_LOCATION(ID3D12Resource* pRes, UINT Sub)
+}
+
+
+class CD3DX12_TILED_RESOURCE_COORDINATE {
+	+CD3DX12_TILED_RESOURCE_COORDINATE()
+	+CD3DX12_TILED_RESOURCE_COORDINATE(const D3D12_TILED_RESOURCE_COORDINATE& o)
+	+CD3DX12_TILED_RESOURCE_COORDINATE(UINT x, UINT y, UINT z, UINT subresource)
+	+operatorconstD3D12_TILED_RESOURCE_COORDINATE&() {query}
+}
+
+
+class CD3DX12_TILE_REGION_SIZE {
+	+CD3DX12_TILE_REGION_SIZE()
+	+CD3DX12_TILE_REGION_SIZE(const D3D12_TILE_REGION_SIZE& o)
+	+CD3DX12_TILE_REGION_SIZE(UINT numTiles, BOOL useBox, UINT width, UINT16 height, UINT16 depth)
+	+operatorconstD3D12_TILE_REGION_SIZE&() {query}
+}
+
+
+class CD3DX12_TILE_SHAPE {
+	+CD3DX12_TILE_SHAPE()
+	+CD3DX12_TILE_SHAPE(const D3D12_TILE_SHAPE& o)
+	+CD3DX12_TILE_SHAPE(UINT widthInTexels, UINT heightInTexels, UINT depthInTexels)
+	+operatorconstD3D12_TILE_SHAPE&() {query}
+}
+'/
+
+class Transform {
+	+offset : XMFLOAT4
+}
+
+
+class Vertex {
+	+pos : XMFLOAT3
+	+color : XMFLOAT4
+}
+
+
+class WindowInfo {
+	+hwnd : HWND
+	+windowed : bool
+	+height : int
+	+width : int
+}
+
+
+
+
+
+/' Inheritance relationships '/
+
+
+
+
+/' Aggregation relationships '/
+
+.CommandQueue *-- .SwapChain
+
+
+.Engine *-- .CommandQueue
+
+
+.Engine *-- .ConstantBuffer
+
+
+.Engine *-- .Device
+
+
+.Engine *-- .RootSignature
+
+
+.Engine *-- .SwapChain
+
+
+.Engine *-- .WindowInfo
+
+
+
+
+
+
+/' Dependency relationships '/
+
+.CD3DX12_DEFAULT <.. .CD3DX12_BLEND_DESC
+
+
+.CD3DX12_DEFAULT <.. .CD3DX12_CPU_DESCRIPTOR_HANDLE
+
+
+.CD3DX12_DEFAULT <.. .CD3DX12_DEPTH_STENCIL_DESC
+
+
+.CD3DX12_DEFAULT <.. .CD3DX12_GPU_DESCRIPTOR_HANDLE
+
+
+.CD3DX12_DEFAULT <.. .CD3DX12_RASTERIZER_DESC
+
+
+.CD3DX12_DEFAULT <.. .CD3DX12_ROOT_SIGNATURE_DESC
+
+
+.CommandQueue <.. .SwapChain
+
+
+.CommandQueue <.. .SwapChain
+
+
+.Device <.. .CD3DX12_RESOURCE_DESC
+
+
+.Device <.. .CD3DX12_RESOURCE_DESC
+
+
+.Device <.. .CommandQueue
+
+
+.Device <.. .RootSignature
+
+
+.Device <.. .SwapChain
+
+
+.Device <.. .SwapChain
+
+
+.SwapChain <.. .CommandQueue
+
+
+.Transform <.. .Mesh
+
+
+.Vertex <.. .Mesh
+
+
+.WindowInfo <.. .Engine
+
+
+.WindowInfo <.. .SwapChain
+
+
+.WindowInfo <.. .SwapChain
+
+
+
+
+
+
+/' Nested objects '/
+
+
+
+@enduml

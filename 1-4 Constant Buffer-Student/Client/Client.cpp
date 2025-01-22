@@ -7,12 +7,13 @@
 
 #define MAX_LOADSTRING 100
 
-// :
-HINSTANCE hInst;                                // 
-WCHAR szTitle[MAX_LOADSTRING];                  // 
-WCHAR szWindowClass[MAX_LOADSTRING];            // 
 
-// 
+WindowInfo GWindowInfo;
+
+HINSTANCE hInst;
+WCHAR szTitle[MAX_LOADSTRING];                  
+WCHAR szWindowClass[MAX_LOADSTRING];            
+
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -26,14 +27,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
-    // TODO: 
 
-    //
+
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_CLIENT, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
 
-    //
+
     if (!InitInstance (hInstance, nCmdShow))
     {
         return FALSE;
@@ -43,10 +43,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     MSG msg;
 
-    unique_ptr<Game> game = make_unique<Game>();
-    game->Init();
+    GWindowInfo.width = 800;
+    GWindowInfo.height = 600;
+    GWindowInfo.windowed = true;
 
-    //
+    unique_ptr<Game> game = make_unique<Game>();
+    game->Init(GWindowInfo);
+
+
     while (true)
     {
         if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
@@ -71,7 +75,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 
 //
-//  : MyRegisterClass()
+//  MyRegisterClass()
 //
 //  
 //
@@ -97,17 +101,12 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 }
 
 //
-//   : InitInstance(HINSTANCE, int)
+//   InitInstance(HINSTANCE, int)
 //
-//   : 
-//
-//   :
-//
-//   
 //
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
-   hInst = hInstance; // 
+   hInst = hInstance; 
 
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
       CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
@@ -120,13 +119,14 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
+   GWindowInfo.hwnd = hWnd;
+
    return TRUE;
 }
 
 //
-//  : WndProc(HWND, UINT, WPARAM, LPARAM)
+// WndProc(HWND, UINT, WPARAM, LPARAM)
 //
-//  
 //
 //  WM_COMMAND  - 
 //  WM_PAINT    - 
@@ -140,7 +140,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
-            // 
+
             switch (wmId)
             {
             case IDM_ABOUT:
@@ -158,7 +158,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO:
+
             EndPaint(hWnd, &ps);
         }
         break;
@@ -171,7 +171,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-// 
+
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
