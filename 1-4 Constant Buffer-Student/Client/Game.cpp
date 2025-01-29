@@ -39,17 +39,17 @@ void Game::Update()
 	//CALL Update() on shader
 	shader->Update();
 
-	////STEP 3 Do this last
-	//{
-	//	//DECLARE a variable called t of type Transform
-	//	Transform t;
-	//	//SET t's offset variable to something like 0.75f, 0.f, 0.f, 0.f
-	//	t.offset = Vec4(0.0f, 0.0f, 0.f, 0.f);
-	//	//CALL SetTransform() on mesh passing in t
-	//	mesh->SetTransform(t);
-	//	//RENDER the mesh
-	//	mesh->Render();
-	//}
+	//STEP 3 Do this last
+	{
+		//DECLARE a variable called t of type Transform
+		Transform t;
+		//SET t's offset variable to something like 0.75f, 0.f, 0.f, 0.f
+		t.offset = Vec4(-0.5f, 0.0f, 0.f, 0.f);
+		//CALL SetTransform() on mesh passing in t
+		mesh->SetTransform(t);
+		//RENDER the mesh
+		mesh->Render();
+	}
 
 	//STEP 3 Do this last
 	{
@@ -57,11 +57,23 @@ void Game::Update()
 		Transform t;
 
 		//SET t's offset variable to something like 0.f, 0.75f, 0.f, 0.f
-		t.offset = Vec4(0.f, 0.0f, 0.f, 0.f);
+		t.offset = Vec4(0.5f, 0.0f, 0.f, 0.f);
 
 		//CALL SetTransform() on mesh passing in t
 		mesh->SetTransform(t);
 
+		//RENDER the mesh
+		mesh->Render();
+	}
+
+	//STEP 3 Do this last
+	{
+		//DECLARE a variable called t of type Transform
+		Transform t;
+		//SET t's offset variable to something like 0.75f, 0.f, 0.f, 0.f
+		t.offset = Vec4(0.f, 1.0f, 0.f, 0.f);
+		//CALL SetTransform() on mesh passing in t
+		mesh->SetTransform(t);
 		//RENDER the mesh
 		mesh->Render();
 	}

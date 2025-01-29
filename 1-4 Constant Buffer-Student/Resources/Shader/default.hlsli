@@ -2,13 +2,13 @@
 //DECLARE  a cbuffer called TEST_B0 mapped to register b0, it is similar to a stuct. Add a variable called offset0 of type float4
 cbuffer TEST_B0
 {
-    float4 offset0 : b0;
+    float4 offset0 : register(b0);
 };
 
 //DECLARE a cbuffer called TEST_B1 mapped to register b1, it is similar to a stuct. Add a variable called offset1 of type float4
 cbuffer TEST_B0
 {
-    float4 offset1 : b1;
+    float4 offset1 : register(b1);
 };
 
 struct VS_IN

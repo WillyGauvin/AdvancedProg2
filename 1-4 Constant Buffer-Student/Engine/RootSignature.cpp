@@ -5,7 +5,7 @@ void RootSignature::Init(ComPtr<ID3D12Device> device)
 {
 	//STEP 3 NEW
 	//DECLARE a variable called param of type CD3DX12_ROOT_PARAMETER with 2 elements
-	CD3DX12_ROOT_PARAMETER param[2] = {};
+	CD3DX12_ROOT_PARAMETER param[2];
 	//INITIALIZE param[0] as a Constant Buffer View 0 -> b0 -> CBV (Shader Register 0)
 	param[0].InitAsConstantBufferView(0);
 	//INITIALIZE param[1] as a Constant Buffer View 1 -> b1 -> CBV (Shader Register 1)

@@ -64,10 +64,10 @@ void ConstantBuffer::PushData(int32 rootParamIndex, void* buffer, uint32 size)
 {
 	assert(_currentIndex < _elementSize);
 	//CALL ::memcpy() passing in &?[ ? * ?], ?, ?
-	::memcpy(&_mappedBuffer[rootParamIndex * _elementSize], buffer, size);
+	::memcpy(&_mappedBuffer[_currentIndex * _elementSize], buffer, size);
 
 	//DECLARE a variable called address of type D3D12_GPU_VIRTUAL_ADDRESS and ASSIGN it to the return value of GetGpuVirtualAddress(?)
-	D3D12_GPU_VIRTUAL_ADDRESS address = GetGpuVirtualAddress(rootParamIndex);
+	D3D12_GPU_VIRTUAL_ADDRESS address = GetGpuVirtualAddress(_currentIndex);
 	//CALL SetGraphicsRootConstantBufferView() on CMD_LIST passing in ?, ?
 	CMD_LIST->SetGraphicsRootConstantBufferView(rootParamIndex, address);
 	//INCREMENT _currentIndex
