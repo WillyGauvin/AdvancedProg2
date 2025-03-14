@@ -1,0 +1,1561 @@
+@startuml
+
+
+
+
+
+/' Objects '/
+
+class Camera {
+	+Camera()
+	+~Camera()
+	-_type : PROJECTION_TYPE
+	-_far : float
+	-_fov : float
+	-_near : float
+	-_scale : float
+	+{static} S_MatProjection : static Matrix
+	+{static} S_MatView : static Matrix
+	+FinalUpdate() : void
+	+Render() : void
+}
+
+
+class CommandQueue {
+	+~CommandQueue()
+	-_cmdAlloc : ComPtr<ID3D12CommandAllocator>
+	-_resCmdAlloc : ComPtr<ID3D12CommandAllocator>
+	+GetCmdQueue() : ComPtr<ID3D12CommandQueue>
+	-_cmdQueue : ComPtr<ID3D12CommandQueue>
+	-_fence : ComPtr<ID3D12Fence>
+	+GetCmdList() : ComPtr<ID3D12GraphicsCommandList>
+	+GetResourceCmdList() : ComPtr<ID3D12GraphicsCommandList>
+	-_cmdList : ComPtr<ID3D12GraphicsCommandList>
+	-_resCmdList : ComPtr<ID3D12GraphicsCommandList>
+	-_fenceEvent : HANDLE
+	-_swapChain : shared_ptr<SwapChain>
+	-_fenceValue : unsigned int
+	+FlushResourceCommandQueue() : void
+	+Init(ComPtr<ID3D12Device> device, shared_ptr<SwapChain> swapChain) : void
+	+RenderBegin(const D3D12_VIEWPORT* vp, const D3D12_RECT* rect) : void
+	+RenderEnd() : void
+	+WaitSync() : void
+}
+
+
+class Component {
+	+Component(COMPONENT_TYPE type)
+	+~Component()
+	#_type : COMPONENT_TYPE
+	+IsValid() : bool
+	+GetType() : int
+	+GetGameObject() : shared_ptr<GameObject>
+	+GetTransform() : shared_ptr<Transform>
+	+Awake() : void
+	+FinalUpdate() : void
+	+LateUpdate() : void
+	-SetGameObject(shared_ptr<GameObject> gameObject) : void
+	+Start() : void
+	+Update() : void
+	#_gameObject : weak_ptr<GameObject>
+}
+
+
+class ConstantBuffer {
+	+ConstantBuffer()
+	+~ConstantBuffer()
+	-_mappedBuffer : BYTE*
+	-_cbvHeap : ComPtr<ID3D12DescriptorHeap>
+	-_cbvBuffer : ComPtr<ID3D12Resource>
+	+GetCpuHandle(unsigned int index) : D3D12_CPU_DESCRIPTOR_HANDLE
+	+GetGpuVirtualAddress(unsigned int index) : D3D12_GPU_VIRTUAL_ADDRESS
+	-_currentIndex : unsigned int
+	-_elementCount : unsigned int
+	-_elementSize : unsigned int
+	-_handleIncrementSize : unsigned int
+	+Clear() : void
+	-CreateBuffer() : void
+	-CreateView() : void
+	+Init(CBV_REGISTER reg, unsigned int size, unsigned int count) : void
+	+PushData(void* buffer, unsigned int size) : void
+}
+
+
+class DepthStencilBuffer {
+	-_dsvHeap : ComPtr<ID3D12DescriptorHeap>
+	-_dsvBuffer : ComPtr<ID3D12Resource>
+	+GetDSVCpuHandle() : D3D12_CPU_DESCRIPTOR_HANDLE
+	+GetDSVFormat() : DXGI_FORMAT
+	+Init(const WindowInfo& window, DXGI_FORMAT dsvFormat) : void
+}
+
+
+class Device {
+	-_debugController : ComPtr<ID3D12Debug>
+	+GetDevice() : ComPtr<ID3D12Device>
+	-_device : ComPtr<ID3D12Device>
+	+GetDXGI() : ComPtr<IDXGIFactory>
+	-_dxgi : ComPtr<IDXGIFactory>
+	+Init() : void
+}
+
+
+class Engine {
+	-_window : WindowInfo
+	+GetWindow() : WindowInfo&
+	+GetCmdQueue() : shared_ptr<CommandQueue>
+	-_cmdQueue : shared_ptr<CommandQueue>
+	+GetConstantBuffer(CONSTANT_BUFFER_TYPE type) : shared_ptr<ConstantBuffer>
+	+GetDepthStencilBuffer() : shared_ptr<DepthStencilBuffer>
+	-_depthStencilBuffer : shared_ptr<DepthStencilBuffer>
+	+GetDevice() : shared_ptr<Device>
+	-_device : shared_ptr<Device>
+	+GetRootSignature() : shared_ptr<RootSignature>
+	-_rootSignature : shared_ptr<RootSignature>
+	+GetSwapChain() : shared_ptr<SwapChain>
+	-_swapChain : shared_ptr<SwapChain>
+	+GetTableDescHeap() : shared_ptr<TableDescriptorHeap>
+	-_tableDescHeap : shared_ptr<TableDescriptorHeap>
+	-_constantBuffers : vector<shared_ptr<ConstantBuffer>>
+	-CreateConstantBuffer(CBV_REGISTER reg, unsigned int bufferSize, unsigned int count) : void
+	+Init(const WindowInfo& info) : void
+	+Render() : void
+	+RenderBegin() : void
+	+RenderEnd() : void
+	+ResizeWindow(int width, int height) : void
+	-ShowFps() : void
+	+Update() : void
+}
+
+
+class GameObject {
+	+GameObject()
+	+~GameObject()
+	-_components : array<shared_ptr<Component>, FIXED_COMPONENT_COUNT>
+	+GetCamera() : shared_ptr<Camera>
+	+GetFixedComponent(COMPONENT_TYPE type) : shared_ptr<Component>
+	+GetMeshRenderer() : shared_ptr<MeshRenderer>
+	+GetTransform() : shared_ptr<Transform>
+	-_scripts : vector<shared_ptr<MonoBehaviour>>
+	+AddComponent(shared_ptr<Component> component) : void
+	+Awake() : void
+	+FinalUpdate() : void
+	+LateUpdate() : void
+	+Start() : void
+	+Update() : void
+}
+
+
+class Input {
+	-DECLARE_SINGLE(Input)
+	-_hwnd : HWND
+	+GetButton(KEY_TYPE key) : bool
+	+GetButtonDown(KEY_TYPE key) : bool
+	+GetButtonUp(KEY_TYPE key) : bool
+	-GetState(KEY_TYPE key) : int
+	-_states : vector<KEY_STATE>
+	+Init(HWND hwnd) : void
+	+Update() : void
+}
+
+
+class Material {
+	-_params : MaterialParams
+	-_textures : array<shared_ptr<Texture>, MATERIAL_TEXTURE_COUNT>
+	+GetShader() : shared_ptr<Shader>
+	-_shader : shared_ptr<Shader>
+	+PushData() : void
+	+SetFloat(unsigned char index, float value) : void
+	+SetInt(unsigned char index, int value) : void
+	+SetShader(shared_ptr<Shader> shader) : void
+	+SetTexture(unsigned char index, shared_ptr<Texture> texture) : void
+}
+
+
+class Mesh {
+	-_indexBuffer : ComPtr<ID3D12Resource>
+	-_vertexBuffer : ComPtr<ID3D12Resource>
+	-_indexBufferView : D3D12_INDEX_BUFFER_VIEW
+	-_indexCount : unsigned int
+	-_vertexCount : unsigned int
+	-CreateIndexBuffer(const vector<uint32>& buffer) : void
+	-CreateVertexBuffer(const vector<Vertex>& buffer) : void
+	+Init(const vector<Vertex>& vertexBuffer, const vector<uint32>& indexbuffer) : void
+	+Render() : void
+}
+
+
+class MeshRenderer {
+	+MeshRenderer()
+	+~MeshRenderer()
+	-_material : shared_ptr<Material>
+	-_mesh : shared_ptr<Mesh>
+	+Render() : void
+	+SetMaterial(shared_ptr<Material> material) : void
+	+SetMesh(shared_ptr<Mesh> mesh) : void
+}
+
+
+class MonoBehaviour {
+	+MonoBehaviour()
+	+~MonoBehaviour()
+	-FinalUpdate() : void
+}
+
+
+class RootSignature {
+	+GetSignature() : ComPtr<ID3D12RootSignature>
+	-_signature : ComPtr<ID3D12RootSignature>
+	-_samplerDesc : D3D12_STATIC_SAMPLER_DESC
+	-CreateRootSignature() : void
+	-CreateSamplerDesc() : void
+	+Init() : void
+}
+
+
+class Scene {
+	-_gameObjects : vector<shared_ptr<GameObject>>
+	+GetGameObjects() : vector<shared_ptr<GameObject>>&
+	+AddGameObject(shared_ptr<GameObject> gameObject) : void
+	+Awake() : void
+	+FinalUpdate() : void
+	+LateUpdate() : void
+	+RemoveGameObject(shared_ptr<GameObject> gameObject) : void
+	+Start() : void
+	+Update() : void
+}
+
+
+class SceneManager {
+	-DECLARE_SINGLE(SceneManager)
+	+GetActiveScene() : shared_ptr<Scene>
+	-LoadTestScene() : shared_ptr<Scene>
+	-_activeScene : shared_ptr<Scene>
+	+LoadScene(wstring sceneName) : void
+	+Render() : void
+	+Update() : void
+}
+
+
+class Shader {
+	-_pipelineState : ComPtr<ID3D12PipelineState>
+	-_errBlob : ComPtr<ID3DBlob>
+	-_psBlob : ComPtr<ID3DBlob>
+	-_vsBlob : ComPtr<ID3DBlob>
+	-CreatePixelShader(const wstring& path, const string& name, const string& version) : void
+	-CreateShader(const wstring& path, const string& name, const string& version, ComPtr<ID3DBlob>& blob, D3D12_SHADER_BYTECODE& shaderByteCode) : void
+	-CreateVertexShader(const wstring& path, const string& name, const string& version) : void
+	+Init(const wstring& path) : void
+	+Update() : void
+}
+
+
+class SwapChain {
+	-_rtvHeap : ComPtr<ID3D12DescriptorHeap>
+	+GetBackRTVBuffer() : ComPtr<ID3D12Resource>
+	+GetRenderTarget(int index) : ComPtr<ID3D12Resource>
+	-_rtvBuffer : ComPtr<ID3D12Resource>
+	+GetSwapChain() : ComPtr<IDXGISwapChain>
+	-_swapChain : ComPtr<IDXGISwapChain>
+	+GetBackRTV() : D3D12_CPU_DESCRIPTOR_HANDLE
+	-_rtvHandle : D3D12_CPU_DESCRIPTOR_HANDLE
+	-_backBufferIndex : unsigned int
+	-CreateRTV(ComPtr<ID3D12Device> device) : void
+	-CreateSwapChain(const WindowInfo& info, ComPtr<IDXGIFactory> dxgi, ComPtr<ID3D12CommandQueue> cmdQueue) : void
+	+Init(const WindowInfo& info, ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory> dxgi, ComPtr<ID3D12CommandQueue> cmdQueue) : void
+	+Present() : void
+	+SwapIndex() : void
+}
+
+
+class TableDescriptorHeap {
+	+GetDescriptorHeap() : ComPtr<ID3D12DescriptorHeap>
+	-_descHeap : ComPtr<ID3D12DescriptorHeap>
+	-GetCPUHandle(unsigned char reg) : D3D12_CPU_DESCRIPTOR_HANDLE
+	+GetCPUHandle(CBV_REGISTER reg) : D3D12_CPU_DESCRIPTOR_HANDLE
+	+GetCPUHandle(SRV_REGISTER reg) : D3D12_CPU_DESCRIPTOR_HANDLE
+	-_groupCount : uint64_t
+	-_groupSize : uint64_t
+	-_handleSize : uint64_t
+	-_currentGroupIndex : unsigned int
+	+Clear() : void
+	+CommitTable() : void
+	+Init(unsigned int count) : void
+	+SetCBV(D3D12_CPU_DESCRIPTOR_HANDLE srcHandle, CBV_REGISTER reg) : void
+	+SetSRV(D3D12_CPU_DESCRIPTOR_HANDLE srcHandle, SRV_REGISTER reg) : void
+}
+
+
+class TestCameraScript {
+	+TestCameraScript()
+	+~TestCameraScript()
+	-_speed : float
+	+LateUpdate() : void
+}
+
+
+class Texture {
+	-_srvHeap : ComPtr<ID3D12DescriptorHeap>
+	-_tex2D : ComPtr<ID3D12Resource>
+	+GetCpuHandle() : D3D12_CPU_DESCRIPTOR_HANDLE
+	-_srvHandle : D3D12_CPU_DESCRIPTOR_HANDLE
+	-_image : ScratchImage
+	+CreateTexture(const wstring& path) : void
+	+CreateView() : void
+	+Init(const wstring& path) : void
+}
+
+
+class Timer {
+	-DECLARE_SINGLE(Timer)
+	+GetDeltaTime() : float
+	-_deltaTime : float
+	-_frameTime : float
+	-_frequency : uint64_t
+	-_prevCount : uint64_t
+	+GetFps() : unsigned int
+	-_fps : unsigned int
+	-_frameCount : unsigned int
+	+Init() : void
+	+Update() : void
+}
+
+
+class Transform {
+	+Transform()
+	+~Transform()
+	+GetLocalToWorldMatrix() : Matrix&
+	+GetLook() : Vec3
+	+GetRight() : Vec3
+	+GetUp() : Vec3
+	+GetLocalPosition() : Vec3&
+	+GetLocalRotation() : Vec3&
+	+GetLocalScale() : Vec3&
+	+GetWorldPosition() : Vec3&
+	+FinalUpdate() : void
+	+PushData() : void
+	+SetLocalPosition(const Vec3& position) : void
+	+SetLocalRotation(const Vec3& rotation) : void
+	+SetLocalScale(const Vec3& scale) : void
+	+SetParent(shared_ptr<Transform> parent) : void
+	+GetParent() : weak_ptr<Transform>
+	-_parent : weak_ptr<Transform>
+}
+
+
+enum CBV_REGISTER {
+	END
+	b0
+	b1
+	b2
+	b3
+	b4
+}
+
+
+enum COMPONENT_TYPE {
+	CAMERA
+	END
+	MESH_RENDERER
+	MONO_BEHAVIOUR
+	TRANSFORM
+}
+
+
+enum CONSTANT_BUFFER_TYPE {
+	END
+	MATERIAL
+	TRANSFORM
+}
+
+
+enum KEY_STATE {
+	DOWN
+	END
+	NONE
+	PRESS
+	UP
+}
+
+
+enum KEY_TYPE {
+	A
+	D
+	DOWN
+	E
+	LEFT
+	Q
+	RIGHT
+	S
+	UP
+	W
+}
+
+
+enum PROJECTION_TYPE {
+	ORTHOGRAPHIC
+	PERSPECTIVE
+}
+
+
+enum SRV_REGISTER {
+	END
+	t0
+	t1
+	t2
+	t3
+	t4
+}
+
+
+enum empty {
+	KEY_STATE_COUNT
+	KEY_TYPE_COUNT
+}
+
+
+enum empty {
+	FIXED_COMPONENT_COUNT
+}
+
+
+enum empty {
+	MATERIAL_FLOAT_COUNT
+	MATERIAL_INT_COUNT
+	MATERIAL_TEXTURE_COUNT
+}
+
+
+enum empty {
+	CONSTANT_BUFFER_COUNT
+}
+
+
+enum empty {
+	CBV_REGISTER_COUNT
+	REGISTER_COUNT
+	SRV_REGISTER_COUNT
+	SWAP_CHAIN_BUFFER_COUNT
+}
+
+/'
+class CD3DX12_BLEND_DESC {
+	+CD3DX12_BLEND_DESC()
+	+CD3DX12_BLEND_DESC(const D3D12_BLEND_DESC& o)
+	+CD3DX12_BLEND_DESC(CD3DX12_DEFAULT)
+	+operatorconstD3D12_BLEND_DESC&() {query}
+	+~CD3DX12_BLEND_DESC()
+}
+
+
+class CD3DX12_BOX {
+	+CD3DX12_BOX()
+	+CD3DX12_BOX(const D3D12_BOX& o)
+	+CD3DX12_BOX(LONG Left, LONG Right)
+	+CD3DX12_BOX(LONG Left, LONG Top, LONG Right, LONG Bottom)
+	+CD3DX12_BOX(LONG Left, LONG Top, LONG Front, LONG Right, LONG Bottom, LONG Back)
+	+operatorconstD3D12_BOX&() {query}
+	+~CD3DX12_BOX()
+}
+
+
+class CD3DX12_CLEAR_VALUE {
+	+CD3DX12_CLEAR_VALUE()
+	+CD3DX12_CLEAR_VALUE(const D3D12_CLEAR_VALUE& o)
+	+CD3DX12_CLEAR_VALUE(DXGI_FORMAT format, const FLOAT color)
+	+CD3DX12_CLEAR_VALUE(DXGI_FORMAT format, FLOAT depth, UINT8 stencil)
+	+operatorconstD3D12_CLEAR_VALUE&() {query}
+}
+
+
+class CD3DX12_CPU_DESCRIPTOR_HANDLE {
+	+CD3DX12_CPU_DESCRIPTOR_HANDLE()
+	+CD3DX12_CPU_DESCRIPTOR_HANDLE(const D3D12_CPU_DESCRIPTOR_HANDLE& o)
+	+CD3DX12_CPU_DESCRIPTOR_HANDLE(CD3DX12_DEFAULT)
+	+CD3DX12_CPU_DESCRIPTOR_HANDLE(_In_ const D3D12_CPU_DESCRIPTOR_HANDLE& other, INT offsetScaledByIncrementSize)
+	+CD3DX12_CPU_DESCRIPTOR_HANDLE(_In_ const D3D12_CPU_DESCRIPTOR_HANDLE& other, INT offsetInDescriptors, UINT descriptorIncrementSize)
+	+Offset(INT offsetInDescriptors, UINT descriptorIncrementSize) : CD3DX12_CPU_DESCRIPTOR_HANDLE&
+	+Offset(INT offsetScaledByIncrementSize) : CD3DX12_CPU_DESCRIPTOR_HANDLE&
+	+operator=(const D3D12_CPU_DESCRIPTOR_HANDLE& other) : CD3DX12_CPU_DESCRIPTOR_HANDLE&
+	+operator!=(_In_ const D3D12_CPU_DESCRIPTOR_HANDLE& other) : bool
+	+operator==(_In_ const D3D12_CPU_DESCRIPTOR_HANDLE& other) : bool
+	+InitOffsetted(_In_ const D3D12_CPU_DESCRIPTOR_HANDLE& base, INT offsetScaledByIncrementSize) : void
+	+InitOffsetted(_In_ const D3D12_CPU_DESCRIPTOR_HANDLE& base, INT offsetInDescriptors, UINT descriptorIncrementSize) : void
+	+{static} InitOffsetted(_Out_ D3D12_CPU_DESCRIPTOR_HANDLE& handle, _In_ const D3D12_CPU_DESCRIPTOR_HANDLE& base, INT offsetScaledByIncrementSize) : void
+	+{static} InitOffsetted(_Out_ D3D12_CPU_DESCRIPTOR_HANDLE& handle, _In_ const D3D12_CPU_DESCRIPTOR_HANDLE& base, INT offsetInDescriptors, UINT descriptorIncrementSize) : void
+}
+
+
+class CD3DX12_DEFAULT {
+}
+
+
+class CD3DX12_DEPTH_STENCIL_DESC {
+	+CD3DX12_DEPTH_STENCIL_DESC()
+	+CD3DX12_DEPTH_STENCIL_DESC(const D3D12_DEPTH_STENCIL_DESC& o)
+	+CD3DX12_DEPTH_STENCIL_DESC(CD3DX12_DEFAULT)
+	+CD3DX12_DEPTH_STENCIL_DESC(BOOL depthEnable, D3D12_DEPTH_WRITE_MASK depthWriteMask, D3D12_COMPARISON_FUNC depthFunc, BOOL stencilEnable, UINT8 stencilReadMask, UINT8 stencilWriteMask, D3D12_STENCIL_OP frontStencilFailOp, D3D12_STENCIL_OP frontStencilDepthFailOp, D3D12_STENCIL_OP frontStencilPassOp, D3D12_COMPARISON_FUNC frontStencilFunc, D3D12_STENCIL_OP backStencilFailOp, D3D12_STENCIL_OP backStencilDepthFailOp, D3D12_STENCIL_OP backStencilPassOp, D3D12_COMPARISON_FUNC backStencilFunc)
+	+operatorconstD3D12_DEPTH_STENCIL_DESC&() {query}
+	+~CD3DX12_DEPTH_STENCIL_DESC()
+}
+
+
+class CD3DX12_DESCRIPTOR_RANGE {
+	+CD3DX12_DESCRIPTOR_RANGE()
+	+CD3DX12_DESCRIPTOR_RANGE(const D3D12_DESCRIPTOR_RANGE& o)
+	+CD3DX12_DESCRIPTOR_RANGE(D3D12_DESCRIPTOR_RANGE_TYPE rangeType, UINT numDescriptors, UINT baseShaderRegister, UINT registerSpace, UINT offsetInDescriptorsFromTableStart)
+	+Init(D3D12_DESCRIPTOR_RANGE_TYPE rangeType, UINT numDescriptors, UINT baseShaderRegister, UINT registerSpace, UINT offsetInDescriptorsFromTableStart) : void
+	+{static} Init(_Out_ D3D12_DESCRIPTOR_RANGE& range, D3D12_DESCRIPTOR_RANGE_TYPE rangeType, UINT numDescriptors, UINT baseShaderRegister, UINT registerSpace, UINT offsetInDescriptorsFromTableStart) : void
+}
+
+
+class CD3DX12_GPU_DESCRIPTOR_HANDLE {
+	+CD3DX12_GPU_DESCRIPTOR_HANDLE()
+	+CD3DX12_GPU_DESCRIPTOR_HANDLE(const D3D12_GPU_DESCRIPTOR_HANDLE& o)
+	+CD3DX12_GPU_DESCRIPTOR_HANDLE(CD3DX12_DEFAULT)
+	+CD3DX12_GPU_DESCRIPTOR_HANDLE(_In_ const D3D12_GPU_DESCRIPTOR_HANDLE& other, INT offsetScaledByIncrementSize)
+	+CD3DX12_GPU_DESCRIPTOR_HANDLE(_In_ const D3D12_GPU_DESCRIPTOR_HANDLE& other, INT offsetInDescriptors, UINT descriptorIncrementSize)
+	+Offset(INT offsetInDescriptors, UINT descriptorIncrementSize) : CD3DX12_GPU_DESCRIPTOR_HANDLE&
+	+Offset(INT offsetScaledByIncrementSize) : CD3DX12_GPU_DESCRIPTOR_HANDLE&
+	+operator=(const D3D12_GPU_DESCRIPTOR_HANDLE& other) : CD3DX12_GPU_DESCRIPTOR_HANDLE&
+	+operator!=(_In_ const D3D12_GPU_DESCRIPTOR_HANDLE& other) : bool
+	+operator==(_In_ const D3D12_GPU_DESCRIPTOR_HANDLE& other) : bool
+	+InitOffsetted(_In_ const D3D12_GPU_DESCRIPTOR_HANDLE& base, INT offsetScaledByIncrementSize) : void
+	+InitOffsetted(_In_ const D3D12_GPU_DESCRIPTOR_HANDLE& base, INT offsetInDescriptors, UINT descriptorIncrementSize) : void
+	+{static} InitOffsetted(_Out_ D3D12_GPU_DESCRIPTOR_HANDLE& handle, _In_ const D3D12_GPU_DESCRIPTOR_HANDLE& base, INT offsetScaledByIncrementSize) : void
+	+{static} InitOffsetted(_Out_ D3D12_GPU_DESCRIPTOR_HANDLE& handle, _In_ const D3D12_GPU_DESCRIPTOR_HANDLE& base, INT offsetInDescriptors, UINT descriptorIncrementSize) : void
+}
+
+
+class CD3DX12_HEAP_DESC {
+	+CD3DX12_HEAP_DESC()
+	+CD3DX12_HEAP_DESC(const D3D12_HEAP_DESC& o)
+	+CD3DX12_HEAP_DESC(UINT64 size, D3D12_HEAP_PROPERTIES properties, UINT64 alignment, D3D12_HEAP_FLAGS flags)
+	+CD3DX12_HEAP_DESC(UINT64 size, D3D12_HEAP_TYPE type, UINT64 alignment, D3D12_HEAP_FLAGS flags)
+	+CD3DX12_HEAP_DESC(UINT64 size, D3D12_CPU_PAGE_PROPERTY cpuPageProperty, D3D12_MEMORY_POOL memoryPoolPreference, UINT64 alignment, D3D12_HEAP_FLAGS flags)
+	+CD3DX12_HEAP_DESC(const D3D12_RESOURCE_ALLOCATION_INFO& resAllocInfo, D3D12_HEAP_PROPERTIES properties, D3D12_HEAP_FLAGS flags)
+	+CD3DX12_HEAP_DESC(const D3D12_RESOURCE_ALLOCATION_INFO& resAllocInfo, D3D12_HEAP_TYPE type, D3D12_HEAP_FLAGS flags)
+	+CD3DX12_HEAP_DESC(const D3D12_RESOURCE_ALLOCATION_INFO& resAllocInfo, D3D12_CPU_PAGE_PROPERTY cpuPageProperty, D3D12_MEMORY_POOL memoryPoolPreference, D3D12_HEAP_FLAGS flags)
+	+operatorconstD3D12_HEAP_DESC&() {query}
+	+IsCPUAccessible() : bool {query}
+}
+
+
+class CD3DX12_HEAP_PROPERTIES {
+	+CD3DX12_HEAP_PROPERTIES()
+	+CD3DX12_HEAP_PROPERTIES(const D3D12_HEAP_PROPERTIES& o)
+	+CD3DX12_HEAP_PROPERTIES(D3D12_CPU_PAGE_PROPERTY cpuPageProperty, D3D12_MEMORY_POOL memoryPoolPreference, UINT creationNodeMask, UINT nodeMask)
+	+CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE type, UINT creationNodeMask, UINT nodeMask)
+	+operatorconstD3D12_HEAP_PROPERTIES&() {query}
+	+IsCPUAccessible() : bool {query}
+}
+
+
+class CD3DX12_PACKED_MIP_INFO {
+	+CD3DX12_PACKED_MIP_INFO()
+	+CD3DX12_PACKED_MIP_INFO(const D3D12_PACKED_MIP_INFO& o)
+	+CD3DX12_PACKED_MIP_INFO(UINT8 numStandardMips, UINT8 numPackedMips, UINT numTilesForPackedMips, UINT startTileIndexInOverallResource)
+	+operatorconstD3D12_PACKED_MIP_INFO&() {query}
+}
+
+
+class CD3DX12_RANGE {
+	+CD3DX12_RANGE()
+	+CD3DX12_RANGE(const D3D12_RANGE& o)
+	+CD3DX12_RANGE(SIZE_T begin, SIZE_T end)
+	+operatorconstD3D12_RANGE&() {query}
+}
+
+
+class CD3DX12_RASTERIZER_DESC {
+	+CD3DX12_RASTERIZER_DESC()
+	+CD3DX12_RASTERIZER_DESC(const D3D12_RASTERIZER_DESC& o)
+	+CD3DX12_RASTERIZER_DESC(CD3DX12_DEFAULT)
+	+CD3DX12_RASTERIZER_DESC(D3D12_FILL_MODE fillMode, D3D12_CULL_MODE cullMode, BOOL frontCounterClockwise, INT depthBias, FLOAT depthBiasClamp, FLOAT slopeScaledDepthBias, BOOL depthClipEnable, BOOL multisampleEnable, BOOL antialiasedLineEnable, UINT forcedSampleCount, D3D12_CONSERVATIVE_RASTERIZATION_MODE conservativeRaster)
+	+operatorconstD3D12_RASTERIZER_DESC&() {query}
+	+~CD3DX12_RASTERIZER_DESC()
+}
+
+
+class CD3DX12_RECT {
+	+CD3DX12_RECT()
+	+CD3DX12_RECT(const D3D12_RECT& o)
+	+CD3DX12_RECT(LONG Left, LONG Top, LONG Right, LONG Bottom)
+	+operatorconstD3D12_RECT&() {query}
+	+~CD3DX12_RECT()
+}
+
+
+class CD3DX12_RESOURCE_ALLOCATION_INFO {
+	+CD3DX12_RESOURCE_ALLOCATION_INFO()
+	+CD3DX12_RESOURCE_ALLOCATION_INFO(const D3D12_RESOURCE_ALLOCATION_INFO& o)
+	+CD3DX12_RESOURCE_ALLOCATION_INFO(UINT64 size, UINT64 alignment)
+	+operatorconstD3D12_RESOURCE_ALLOCATION_INFO&() {query}
+}
+
+
+class CD3DX12_RESOURCE_BARRIER {
+	+CD3DX12_RESOURCE_BARRIER()
+	+CD3DX12_RESOURCE_BARRIER(const D3D12_RESOURCE_BARRIER& o)
+	+operatorconstD3D12_RESOURCE_BARRIER&() {query}
+	+{static} Aliasing(_In_ ID3D12Resource* pResourceBefore, _In_ ID3D12Resource* pResourceAfter) : CD3DX12_RESOURCE_BARRIER
+	+{static} Transition(_In_ ID3D12Resource* pResource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter, UINT subresource, D3D12_RESOURCE_BARRIER_FLAGS flags) : CD3DX12_RESOURCE_BARRIER
+	+{static} UAV(_In_ ID3D12Resource* pResource) : CD3DX12_RESOURCE_BARRIER
+}
+
+
+class CD3DX12_RESOURCE_DESC {
+	+CD3DX12_RESOURCE_DESC()
+	+CD3DX12_RESOURCE_DESC(const D3D12_RESOURCE_DESC& o)
+	+CD3DX12_RESOURCE_DESC(D3D12_RESOURCE_DIMENSION dimension, UINT64 alignment, UINT64 width, UINT height, UINT16 depthOrArraySize, UINT16 mipLevels, DXGI_FORMAT format, UINT sampleCount, UINT sampleQuality, D3D12_TEXTURE_LAYOUT layout, D3D12_RESOURCE_FLAGS flags)
+	+operatorconstD3D12_RESOURCE_DESC&() {query}
+	+{static} Buffer(const D3D12_RESOURCE_ALLOCATION_INFO& resAllocInfo, D3D12_RESOURCE_FLAGS flags) : CD3DX12_RESOURCE_DESC
+	+{static} Buffer(UINT64 width, D3D12_RESOURCE_FLAGS flags, UINT64 alignment) : CD3DX12_RESOURCE_DESC
+	+{static} Tex1D(DXGI_FORMAT format, UINT64 width, UINT16 arraySize, UINT16 mipLevels, D3D12_RESOURCE_FLAGS flags, D3D12_TEXTURE_LAYOUT layout, UINT64 alignment) : CD3DX12_RESOURCE_DESC
+	+{static} Tex2D(DXGI_FORMAT format, UINT64 width, UINT height, UINT16 arraySize, UINT16 mipLevels, UINT sampleCount, UINT sampleQuality, D3D12_RESOURCE_FLAGS flags, D3D12_TEXTURE_LAYOUT layout, UINT64 alignment) : CD3DX12_RESOURCE_DESC
+	+{static} Tex3D(DXGI_FORMAT format, UINT64 width, UINT height, UINT16 depth, UINT16 mipLevels, D3D12_RESOURCE_FLAGS flags, D3D12_TEXTURE_LAYOUT layout, UINT64 alignment) : CD3DX12_RESOURCE_DESC
+	+CalcSubresource(UINT MipSlice, UINT ArraySlice, UINT PlaneSlice) : UINT
+	+Subresources(_In_ ID3D12Device* pDevice) : UINT {query}
+	+ArraySize() : UINT16 {query}
+	+Depth() : UINT16 {query}
+	+PlaneCount(_In_ ID3D12Device* pDevice) : UINT8 {query}
+}
+
+
+class CD3DX12_ROOT_CONSTANTS {
+	+CD3DX12_ROOT_CONSTANTS()
+	+CD3DX12_ROOT_CONSTANTS(const D3D12_ROOT_CONSTANTS& o)
+	+CD3DX12_ROOT_CONSTANTS(UINT num32BitValues, UINT shaderRegister, UINT registerSpace)
+	+Init(UINT num32BitValues, UINT shaderRegister, UINT registerSpace) : void
+	+{static} Init(_Out_ D3D12_ROOT_CONSTANTS& rootConstants, UINT num32BitValues, UINT shaderRegister, UINT registerSpace) : void
+}
+
+
+class CD3DX12_ROOT_DESCRIPTOR {
+	+CD3DX12_ROOT_DESCRIPTOR()
+	+CD3DX12_ROOT_DESCRIPTOR(const D3D12_ROOT_DESCRIPTOR& o)
+	+CD3DX12_ROOT_DESCRIPTOR(UINT shaderRegister, UINT registerSpace)
+	+Init(UINT shaderRegister, UINT registerSpace) : void
+	+{static} Init(_Out_ D3D12_ROOT_DESCRIPTOR& table, UINT shaderRegister, UINT registerSpace) : void
+}
+
+
+class CD3DX12_ROOT_DESCRIPTOR_TABLE {
+	+CD3DX12_ROOT_DESCRIPTOR_TABLE()
+	+CD3DX12_ROOT_DESCRIPTOR_TABLE(const D3D12_ROOT_DESCRIPTOR_TABLE& o)
+	+CD3DX12_ROOT_DESCRIPTOR_TABLE(UINT numDescriptorRanges, _In_reads_opt_ ( numDescriptorRanges ) const D3D12_DESCRIPTOR_RANGE* _pDescriptorRanges)
+	+Init(UINT numDescriptorRanges, _In_reads_ ( numDescriptorRanges ) const D3D12_DESCRIPTOR_RANGE* _pDescriptorRanges) : void
+	+{static} Init(_Out_ D3D12_ROOT_DESCRIPTOR_TABLE& rootDescriptorTable, UINT numDescriptorRanges, _In_reads_opt_ ( numDescriptorRanges ) const D3D12_DESCRIPTOR_RANGE* _pDescriptorRanges) : void
+}
+
+
+class CD3DX12_ROOT_PARAMETER {
+	+CD3DX12_ROOT_PARAMETER()
+	+CD3DX12_ROOT_PARAMETER(const D3D12_ROOT_PARAMETER& o)
+	+{static} InitAsConstantBufferView(_Out_ D3D12_ROOT_PARAMETER& rootParam, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility) : void
+	+InitAsConstantBufferView(UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility) : void
+	+{static} InitAsConstants(_Out_ D3D12_ROOT_PARAMETER& rootParam, UINT num32BitValues, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility) : void
+	+InitAsConstants(UINT num32BitValues, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility) : void
+	+{static} InitAsDescriptorTable(_Out_ D3D12_ROOT_PARAMETER& rootParam, UINT numDescriptorRanges, _In_reads_ ( numDescriptorRanges ) const D3D12_DESCRIPTOR_RANGE* pDescriptorRanges, D3D12_SHADER_VISIBILITY visibility) : void
+	+InitAsDescriptorTable(UINT numDescriptorRanges, _In_reads_ ( numDescriptorRanges ) const D3D12_DESCRIPTOR_RANGE* pDescriptorRanges, D3D12_SHADER_VISIBILITY visibility) : void
+	+{static} InitAsShaderResourceView(_Out_ D3D12_ROOT_PARAMETER& rootParam, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility) : void
+	+InitAsShaderResourceView(UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility) : void
+	+{static} InitAsUnorderedAccessView(_Out_ D3D12_ROOT_PARAMETER& rootParam, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility) : void
+	+InitAsUnorderedAccessView(UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility) : void
+}
+
+
+class CD3DX12_ROOT_SIGNATURE_DESC {
+	+CD3DX12_ROOT_SIGNATURE_DESC()
+	+CD3DX12_ROOT_SIGNATURE_DESC(const D3D12_ROOT_SIGNATURE_DESC& o)
+	+CD3DX12_ROOT_SIGNATURE_DESC(UINT numParameters, _In_reads_opt_ ( numParameters ) const D3D12_ROOT_PARAMETER* _pParameters, UINT numStaticSamplers, _In_reads_opt_ ( numStaticSamplers ) const D3D12_STATIC_SAMPLER_DESC* _pStaticSamplers, D3D12_ROOT_SIGNATURE_FLAGS flags)
+	+CD3DX12_ROOT_SIGNATURE_DESC(CD3DX12_DEFAULT)
+	+Init(UINT numParameters, _In_reads_opt_ ( numParameters ) const D3D12_ROOT_PARAMETER* _pParameters, UINT numStaticSamplers, _In_reads_opt_ ( numStaticSamplers ) const D3D12_STATIC_SAMPLER_DESC* _pStaticSamplers, D3D12_ROOT_SIGNATURE_FLAGS flags) : void
+	+{static} Init(_Out_ D3D12_ROOT_SIGNATURE_DESC& desc, UINT numParameters, _In_reads_opt_ ( numParameters ) const D3D12_ROOT_PARAMETER* _pParameters, UINT numStaticSamplers, _In_reads_opt_ ( numStaticSamplers ) const D3D12_STATIC_SAMPLER_DESC* _pStaticSamplers, D3D12_ROOT_SIGNATURE_FLAGS flags) : void
+}
+
+
+class CD3DX12_STATIC_SAMPLER_DESC {
+	+CD3DX12_STATIC_SAMPLER_DESC()
+	+CD3DX12_STATIC_SAMPLER_DESC(const D3D12_STATIC_SAMPLER_DESC& o)
+	+CD3DX12_STATIC_SAMPLER_DESC(UINT shaderRegister, D3D12_FILTER filter, D3D12_TEXTURE_ADDRESS_MODE addressU, D3D12_TEXTURE_ADDRESS_MODE addressV, D3D12_TEXTURE_ADDRESS_MODE addressW, FLOAT mipLODBias, UINT maxAnisotropy, D3D12_COMPARISON_FUNC comparisonFunc, D3D12_STATIC_BORDER_COLOR borderColor, FLOAT minLOD, FLOAT maxLOD, D3D12_SHADER_VISIBILITY shaderVisibility, UINT registerSpace)
+	+{static} Init(_Out_ D3D12_STATIC_SAMPLER_DESC& samplerDesc, UINT shaderRegister, D3D12_FILTER filter, D3D12_TEXTURE_ADDRESS_MODE addressU, D3D12_TEXTURE_ADDRESS_MODE addressV, D3D12_TEXTURE_ADDRESS_MODE addressW, FLOAT mipLODBias, UINT maxAnisotropy, D3D12_COMPARISON_FUNC comparisonFunc, D3D12_STATIC_BORDER_COLOR borderColor, FLOAT minLOD, FLOAT maxLOD, D3D12_SHADER_VISIBILITY shaderVisibility, UINT registerSpace) : void
+	+Init(UINT shaderRegister, D3D12_FILTER filter, D3D12_TEXTURE_ADDRESS_MODE addressU, D3D12_TEXTURE_ADDRESS_MODE addressV, D3D12_TEXTURE_ADDRESS_MODE addressW, FLOAT mipLODBias, UINT maxAnisotropy, D3D12_COMPARISON_FUNC comparisonFunc, D3D12_STATIC_BORDER_COLOR borderColor, FLOAT minLOD, FLOAT maxLOD, D3D12_SHADER_VISIBILITY shaderVisibility, UINT registerSpace) : void
+}
+
+
+class CD3DX12_SUBRESOURCE_FOOTPRINT {
+	+CD3DX12_SUBRESOURCE_FOOTPRINT()
+	+CD3DX12_SUBRESOURCE_FOOTPRINT(const D3D12_SUBRESOURCE_FOOTPRINT& o)
+	+CD3DX12_SUBRESOURCE_FOOTPRINT(DXGI_FORMAT format, UINT width, UINT height, UINT depth, UINT rowPitch)
+	+CD3DX12_SUBRESOURCE_FOOTPRINT(const D3D12_RESOURCE_DESC& resDesc, UINT rowPitch)
+	+operatorconstD3D12_SUBRESOURCE_FOOTPRINT&() {query}
+}
+
+
+class CD3DX12_SUBRESOURCE_TILING {
+	+CD3DX12_SUBRESOURCE_TILING()
+	+CD3DX12_SUBRESOURCE_TILING(const D3D12_SUBRESOURCE_TILING& o)
+	+CD3DX12_SUBRESOURCE_TILING(UINT widthInTiles, UINT16 heightInTiles, UINT16 depthInTiles, UINT startTileIndexInOverallResource)
+	+operatorconstD3D12_SUBRESOURCE_TILING&() {query}
+}
+
+
+class CD3DX12_TEXTURE_COPY_LOCATION {
+	+CD3DX12_TEXTURE_COPY_LOCATION()
+	+CD3DX12_TEXTURE_COPY_LOCATION(const D3D12_TEXTURE_COPY_LOCATION& o)
+	+CD3DX12_TEXTURE_COPY_LOCATION(ID3D12Resource* pRes)
+	+CD3DX12_TEXTURE_COPY_LOCATION(ID3D12Resource* pRes, D3D12_PLACED_SUBRESOURCE_FOOTPRINT const& Footprint)
+	+CD3DX12_TEXTURE_COPY_LOCATION(ID3D12Resource* pRes, UINT Sub)
+}
+
+
+class CD3DX12_TILED_RESOURCE_COORDINATE {
+	+CD3DX12_TILED_RESOURCE_COORDINATE()
+	+CD3DX12_TILED_RESOURCE_COORDINATE(const D3D12_TILED_RESOURCE_COORDINATE& o)
+	+CD3DX12_TILED_RESOURCE_COORDINATE(UINT x, UINT y, UINT z, UINT subresource)
+	+operatorconstD3D12_TILED_RESOURCE_COORDINATE&() {query}
+}
+
+
+class CD3DX12_TILE_REGION_SIZE {
+	+CD3DX12_TILE_REGION_SIZE()
+	+CD3DX12_TILE_REGION_SIZE(const D3D12_TILE_REGION_SIZE& o)
+	+CD3DX12_TILE_REGION_SIZE(UINT numTiles, BOOL useBox, UINT width, UINT16 height, UINT16 depth)
+	+operatorconstD3D12_TILE_REGION_SIZE&() {query}
+}
+
+
+class CD3DX12_TILE_SHAPE {
+	+CD3DX12_TILE_SHAPE()
+	+CD3DX12_TILE_SHAPE(const D3D12_TILE_SHAPE& o)
+	+CD3DX12_TILE_SHAPE(UINT widthInTexels, UINT heightInTexels, UINT depthInTexels)
+	+operatorconstD3D12_TILE_SHAPE&() {query}
+}
+'/
+
+class MaterialParams {
+	+floatParams : array<float, MATERIAL_FLOAT_COUNT>
+	+intParams : array<int32, MATERIAL_INT_COUNT>
+	+SetFloat(unsigned char index, float value) : void
+	+SetInt(unsigned char index, int value) : void
+}
+
+
+class TransformParams {
+	+matWVP : Matrix
+}
+
+
+class Vertex {
+	+uv : Vector2
+	+pos : Vector3
+	+color : Vector4
+}
+
+
+class WindowInfo {
+	+hwnd : HWND
+	+windowed : bool
+	+height : int
+	+width : int
+}
+
+/'
+namespace std {
+	class lessDirectX::SimpleMath::Color <template<>> {
+		+operator()(const DirectX::SimpleMath::Color& C1, const DirectX::SimpleMath::Color& C2) : bool {query}
+	}
+
+	class lessDirectX::SimpleMath::Matrix <template<>> {
+		+operator()(const DirectX::SimpleMath::Matrix& M1, const DirectX::SimpleMath::Matrix& M2) : bool {query}
+	}
+
+	class lessDirectX::SimpleMath::Plane <template<>> {
+		+operator()(const DirectX::SimpleMath::Plane& P1, const DirectX::SimpleMath::Plane& P2) : bool {query}
+	}
+
+	class lessDirectX::SimpleMath::Quaternion <template<>> {
+		+operator()(const DirectX::SimpleMath::Quaternion& Q1, const DirectX::SimpleMath::Quaternion& Q2) : bool {query}
+	}
+
+	class lessDirectX::SimpleMath::Ray <template<>> {
+		+operator()(const DirectX::SimpleMath::Ray& R1, const DirectX::SimpleMath::Ray& R2) : bool {query}
+	}
+
+	class lessDirectX::SimpleMath::Rectangle <template<>> {
+		+operator()(const DirectX::SimpleMath::Rectangle& r1, const DirectX::SimpleMath::Rectangle& r2) : bool {query}
+	}
+
+	class lessDirectX::SimpleMath::Vector2 <template<>> {
+		+operator()(const DirectX::SimpleMath::Vector2& V1, const DirectX::SimpleMath::Vector2& V2) : bool {query}
+	}
+
+	class lessDirectX::SimpleMath::Vector3 <template<>> {
+		+operator()(const DirectX::SimpleMath::Vector3& V1, const DirectX::SimpleMath::Vector3& V2) : bool {query}
+	}
+
+	class lessDirectX::SimpleMath::Vector4 <template<>> {
+		+operator()(const DirectX::SimpleMath::Vector4& V1, const DirectX::SimpleMath::Vector4& V2) : bool {query}
+	}
+
+	class lessDirectX::SimpleMath::Viewport <template<>> {
+		+operator()(const DirectX::SimpleMath::Viewport& vp1, const DirectX::SimpleMath::Viewport& vp2) : bool {query}
+	}
+}
+
+
+namespace DirectX {
+	namespace SimpleMath {
+		class Ray {
+			+Ray()
+			+Ray(const Vector3& pos, const Vector3& dir)
+			+Ray(const Ray &)
+			+Ray(Ray& &)
+			+operator=(const Ray &) : Ray&
+			+operator=(Ray& &) : Ray&
+			+direction : Vector3
+			+position : Vector3
+			+Intersects(const BoundingSphere& sphere, _Out_ float& Dist) : bool {query}
+			+Intersects(const BoundingBox& box, _Out_ float& Dist) : bool {query}
+			+Intersects(const Vector3& tri0, const Vector3& tri1, const Vector3& tri2, _Out_ float& Dist) : bool {query}
+			+Intersects(const Plane& plane, _Out_ float& Dist) : bool {query}
+			+operator!=(const Ray& r) : bool {query}
+			+operator==(const Ray& r) : bool {query}
+		}
+
+		class Viewport {
+			+Viewport()
+			+Viewport(float ix, float iy, float iw, float ih, float iminz, float imaxz)
+			+Viewport(const RECT& rct)
+			+Viewport(const D3D11_VIEWPORT& vp)
+			+Viewport(const D3D12_VIEWPORT& vp)
+			+Viewport(const Viewport &)
+			+Viewport(Viewport& &)
+			+operatorD3D11_VIEWPORT()
+			+operatorD3D12_VIEWPORT()
+			+Get11() : D3D11_VIEWPORT* {query}
+			+Get12() : D3D12_VIEWPORT* {query}
+			+{static} ComputeDisplayArea(DXGI_SCALING scaling, UINT backBufferWidth, UINT backBufferHeight, int outputWidth, int outputHeight) : RECT __cdecl
+			+{static} ComputeTitleSafeArea(UINT backBufferWidth, UINT backBufferHeight) : RECT __cdecl
+			+Project(const Vector3& p, const Matrix& proj, const Matrix& view, const Matrix& world) : Vector3 {query}
+			+Unproject(const Vector3& p, const Matrix& proj, const Matrix& view, const Matrix& world) : Vector3 {query}
+			+operator=(const D3D11_VIEWPORT& vp) : Viewport&
+			+operator=(const D3D12_VIEWPORT& vp) : Viewport&
+			+operator=(const Viewport &) : Viewport&
+			+operator=(Viewport& &) : Viewport&
+			+operator=(const RECT& rct) : Viewport&
+			+operator!=(const Viewport& vp) : bool {query}
+			+operator==(const Viewport& vp) : bool {query}
+			+AspectRatio() : float {query}
+			+height : float
+			+maxDepth : float
+			+minDepth : float
+			+width : float
+			+x : float
+			+y : float
+			+Project(const Vector3& p, const Matrix& proj, const Matrix& view, const Matrix& world, Vector3& result) : void {query}
+			+Unproject(const Vector3& p, const Matrix& proj, const Matrix& view, const Matrix& world, Vector3& result) : void {query}
+		}
+
+		class Color {
+			+Color()
+			+Color(float _r, float _g, float _b)
+			+Color(float _r, float _g, float _b, float _a)
+			+Color(const Vector3& clr)
+			+Color(const Vector4& clr)
+			+Color(_In_reads_ ( 4 ) const float* pArray)
+			+Color(FXMVECTOR V)
+			+Color(const XMFLOAT4& c)
+			+Color(const XMVECTORF32& F)
+			+Color(const DirectX::PackedVector::XMCOLOR& Packed)
+			+Color(const DirectX::PackedVector::XMUBYTEN4& Packed)
+			+Color(const Color &)
+			+Color(Color& &)
+			+operatorXMVECTOR() {query}
+			+operatorconstfloat*() {query}
+			+{static} Lerp(const Color& c1, const Color& c2, float t) : Color
+			+{static} Modulate(const Color& c1, const Color& c2) : Color
+			+operator+() : Color {query}
+			+operator-() : Color {query}
+			+operator*=(const Color& c) : Color&
+			+operator*=(float S) : Color&
+			+operator+=(const Color& c) : Color&
+			+operator-=(const Color& c) : Color&
+			+operator/=(const Color& c) : Color&
+			+operator=(const Color &) : Color&
+			+operator=(Color& &) : Color&
+			+operator=(const XMVECTORF32& F) : Color&
+			+operator=(const DirectX::PackedVector::XMCOLOR& Packed) : Color&
+			+operator=(const DirectX::PackedVector::XMUBYTEN4& Packed) : Color&
+			+BGRA() : DirectX::PackedVector::XMCOLOR {query}
+			+RGBA() : DirectX::PackedVector::XMUBYTEN4 {query}
+			+ToVector3() : Vector3 {query}
+			+ToVector4() : Vector4 {query}
+			+operator!=(const Color& c) : bool {query}
+			+operator==(const Color& c) : bool {query}
+			+A() : float {query}
+			+B() : float {query}
+			+G() : float {query}
+			+R() : float {query}
+			+A(float a) : void
+			+AdjustContrast(float contrast) : void
+			+AdjustContrast(float contrast, Color& result) : void {query}
+			+AdjustSaturation(float sat) : void
+			+AdjustSaturation(float sat, Color& result) : void {query}
+			+B(float b) : void
+			+G(float g) : void
+			+{static} Lerp(const Color& c1, const Color& c2, float t, Color& result) : void
+			+{static} Modulate(const Color& c1, const Color& c2, Color& result) : void
+			+Negate() : void
+			+Negate(Color& result) : void {query}
+			+Premultiply() : void
+			+Premultiply(Color& result) : void {query}
+			+R(float r) : void
+			+Saturate() : void
+			+Saturate(Color& result) : void {query}
+		}
+
+		class Matrix {
+			+Matrix()
+			+Matrix(float m00, float m01, float m02, float m03, float m10, float m11, float m12, float m13, float m20, float m21, float m22, float m23, float m30, float m31, float m32, float m33)
+			+Matrix(const Vector3& r0, const Vector3& r1, const Vector3& r2)
+			+Matrix(const Vector4& r0, const Vector4& r1, const Vector4& r2, const Vector4& r3)
+			+Matrix(const XMFLOAT4X4& M)
+			+Matrix(const XMFLOAT3X3& M)
+			+Matrix(const XMFLOAT4X3& M)
+			+Matrix(_In_reads_ ( 16 ) const float* pArray)
+			+Matrix(CXMMATRIX M)
+			+Matrix(const Matrix &)
+			+Matrix(Matrix& &)
+			+operatorXMMATRIX() {query}
+			+{static} CreateBillboard(const Vector3& object, const Vector3& cameraPosition, const Vector3& cameraUp, _In_opt_ const Vector3* cameraForward) : Matrix
+			+{static} CreateConstrainedBillboard(const Vector3& object, const Vector3& cameraPosition, const Vector3& rotateAxis, _In_opt_ const Vector3* cameraForward, _In_opt_ const Vector3* objectForward) : Matrix
+			+{static} CreateFromAxisAngle(const Vector3& axis, float angle) : Matrix
+			+{static} CreateFromQuaternion(const Quaternion& quat) : Matrix
+			+{static} CreateFromYawPitchRoll(float yaw, float pitch, float roll) : Matrix
+			+{static} CreateLookAt(const Vector3& position, const Vector3& target, const Vector3& up) : Matrix
+			+{static} CreateOrthographic(float width, float height, float zNearPlane, float zFarPlane) : Matrix
+			+{static} CreateOrthographicOffCenter(float left, float right, float bottom, float top, float zNearPlane, float zFarPlane) : Matrix
+			+{static} CreatePerspective(float width, float height, float nearPlane, float farPlane) : Matrix
+			+{static} CreatePerspectiveFieldOfView(float fov, float aspectRatio, float nearPlane, float farPlane) : Matrix
+			+{static} CreatePerspectiveOffCenter(float left, float right, float bottom, float top, float nearPlane, float farPlane) : Matrix
+			+{static} CreateReflection(const Plane& plane) : Matrix
+			+{static} CreateRotationX(float radians) : Matrix
+			+{static} CreateRotationY(float radians) : Matrix
+			+{static} CreateRotationZ(float radians) : Matrix
+			+{static} CreateScale(const Vector3& scales) : Matrix
+			+{static} CreateScale(float xs, float ys, float zs) : Matrix
+			+{static} CreateScale(float scale) : Matrix
+			+{static} CreateShadow(const Vector3& lightDir, const Plane& plane) : Matrix
+			+{static} CreateTranslation(const Vector3& position) : Matrix
+			+{static} CreateTranslation(float x, float y, float z) : Matrix
+			+{static} CreateWorld(const Vector3& position, const Vector3& forward, const Vector3& up) : Matrix
+			+Invert() : Matrix {query}
+			+{static} Lerp(const Matrix& M1, const Matrix& M2, float t) : Matrix
+			+{static} Transform(const Matrix& M, const Quaternion& rotation) : Matrix
+			+Transpose() : Matrix {query}
+			+operator+() : Matrix {query}
+			+operator-() : Matrix {query}
+			+operator*=(const Matrix& M) : Matrix&
+			+operator*=(float S) : Matrix&
+			+operator+=(const Matrix& M) : Matrix&
+			+operator-=(const Matrix& M) : Matrix&
+			+operator/=(float S) : Matrix&
+			+operator/=(const Matrix& M) : Matrix&
+			+operator=(const Matrix &) : Matrix&
+			+operator=(Matrix& &) : Matrix&
+			+operator=(const XMFLOAT3X3& M) : Matrix&
+			+operator=(const XMFLOAT4X3& M) : Matrix&
+			+Backward() : Vector3 {query}
+			+Down() : Vector3 {query}
+			+Forward() : Vector3 {query}
+			+Left() : Vector3 {query}
+			+Right() : Vector3 {query}
+			+Translation() : Vector3 {query}
+			+Up() : Vector3 {query}
+			+Decompose(Vector3& scale, Quaternion& rotation, Vector3& translation) : bool
+			+operator!=(const Matrix& M) : bool {query}
+			+operator==(const Matrix& M) : bool {query}
+			+Determinant() : float {query}
+			+{static} Identity : static const Matrix
+			+Backward(const Vector3& v) : void
+			+Down(const Vector3& v) : void
+			+Forward(const Vector3& v) : void
+			+Invert(Matrix& result) : void {query}
+			+Left(const Vector3& v) : void
+			+{static} Lerp(const Matrix& M1, const Matrix& M2, float t, Matrix& result) : void
+			+Right(const Vector3& v) : void
+			+{static} Transform(const Matrix& M, const Quaternion& rotation, Matrix& result) : void
+			+Translation(const Vector3& v) : void
+			+Transpose(Matrix& result) : void {query}
+			+Up(const Vector3& v) : void
+		}
+
+		class Plane {
+			+Plane()
+			+Plane(float ix, float iy, float iz, float iw)
+			+Plane(const Vector3& normal, float d)
+			+Plane(const Vector3& point1, const Vector3& point2, const Vector3& point3)
+			+Plane(const Vector3& point, const Vector3& normal)
+			+Plane(const Vector4& v)
+			+Plane(_In_reads_ ( 4 ) const float* pArray)
+			+Plane(FXMVECTOR V)
+			+Plane(const XMFLOAT4& p)
+			+Plane(const XMVECTORF32& F)
+			+Plane(const Plane &)
+			+Plane(Plane& &)
+			+operatorXMVECTOR() {query}
+			+{static} Transform(const Plane& plane, const Matrix& M) : Plane
+			+{static} Transform(const Plane& plane, const Quaternion& rotation) : Plane
+			+operator=(const Plane &) : Plane&
+			+operator=(Plane& &) : Plane&
+			+operator=(const XMVECTORF32& F) : Plane&
+			+Normal() : Vector3 {query}
+			+operator!=(const Plane& p) : bool {query}
+			+operator==(const Plane& p) : bool {query}
+			+D() : float {query}
+			+Dot(const Vector4& v) : float {query}
+			+DotCoordinate(const Vector3& position) : float {query}
+			+DotNormal(const Vector3& normal) : float {query}
+			+D(float d) : void
+			+Normal(const Vector3& normal) : void
+			+Normalize() : void
+			+Normalize(Plane& result) : void {query}
+			+{static} Transform(const Plane& plane, const Matrix& M, Plane& result) : void
+			+{static} Transform(const Plane& plane, const Quaternion& rotation, Plane& result) : void
+		}
+
+		class Quaternion {
+			+Quaternion()
+			+Quaternion(float ix, float iy, float iz, float iw)
+			+Quaternion(const Vector3& v, float scalar)
+			+Quaternion(const Vector4& v)
+			+Quaternion(_In_reads_ ( 4 ) const float* pArray)
+			+Quaternion(FXMVECTOR V)
+			+Quaternion(const XMFLOAT4& q)
+			+Quaternion(const XMVECTORF32& F)
+			+Quaternion(const Quaternion &)
+			+Quaternion(Quaternion& &)
+			+operatorXMVECTOR() {query}
+			+{static} Concatenate(const Quaternion& q1, const Quaternion& q2) : Quaternion
+			+{static} CreateFromAxisAngle(const Vector3& axis, float angle) : Quaternion
+			+{static} CreateFromRotationMatrix(const Matrix& M) : Quaternion
+			+{static} CreateFromYawPitchRoll(float yaw, float pitch, float roll) : Quaternion
+			+{static} Lerp(const Quaternion& q1, const Quaternion& q2, float t) : Quaternion
+			+{static} Slerp(const Quaternion& q1, const Quaternion& q2, float t) : Quaternion
+			+operator+() : Quaternion {query}
+			+operator-() : Quaternion {query}
+			+operator*=(const Quaternion& q) : Quaternion&
+			+operator*=(float S) : Quaternion&
+			+operator+=(const Quaternion& q) : Quaternion&
+			+operator-=(const Quaternion& q) : Quaternion&
+			+operator/=(const Quaternion& q) : Quaternion&
+			+operator=(const Quaternion &) : Quaternion&
+			+operator=(Quaternion& &) : Quaternion&
+			+operator=(const XMVECTORF32& F) : Quaternion&
+			+operator!=(const Quaternion& q) : bool {query}
+			+operator==(const Quaternion& q) : bool {query}
+			+Dot(const Quaternion& Q) : float {query}
+			+Length() : float {query}
+			+LengthSquared() : float {query}
+			+{static} Identity : static const Quaternion
+			+{static} Concatenate(const Quaternion& q1, const Quaternion& q2, Quaternion& result) : void
+			+Conjugate() : void
+			+Conjugate(Quaternion& result) : void {query}
+			+Inverse(Quaternion& result) : void {query}
+			+{static} Lerp(const Quaternion& q1, const Quaternion& q2, float t, Quaternion& result) : void
+			+Normalize() : void
+			+Normalize(Quaternion& result) : void {query}
+			+{static} Slerp(const Quaternion& q1, const Quaternion& q2, float t, Quaternion& result) : void
+		}
+
+		class Rectangle {
+			+Rect()
+			+Rectangle()
+			+Rectangle(long ix, long iy, long iw, long ih)
+			+Rectangle(const RECT& rct)
+			+Rectangle(const Rectangle &)
+			+Rectangle(Rectangle& &)
+			+operatorRECT()
+			+{static} Intersect(const RECT& rcta, const RECT& rctb) : RECT
+			+{static} Union(const RECT& rcta, const RECT& rctb) : RECT
+			+{static} Intersect(const Rectangle& ra, const Rectangle& rb) : Rectangle
+			+{static} Union(const Rectangle& ra, const Rectangle& rb) : Rectangle
+			+operator=(const Rectangle &) : Rectangle&
+			+operator=(Rectangle& &) : Rectangle&
+			+operator=(_In_ const RECT& rct) : Rectangle&
+			+Center() : Vector2 {query}
+			+Location() : Vector2 {query}
+			+Contains(long ix, long iy) : bool {query}
+			+Contains(const Vector2& point) : bool {query}
+			+Contains(const Rectangle& r) : bool {query}
+			+Contains(const RECT& rct) : bool {query}
+			+Intersects(const Rectangle& r) : bool {query}
+			+Intersects(const RECT& rct) : bool {query}
+			+IsEmpty() : bool {query}
+			+operator!=(const Rectangle& r) : bool {query}
+			+operator!=(const RECT& rct) : bool {query}
+			+operator==(const Rectangle& r) : bool {query}
+			+operator==(const RECT& rct) : bool {query}
+			+height : long
+			+width : long
+			+x : long
+			+y : long
+			+Inflate(long horizAmount, long vertAmount) : void
+			+Offset(long ox, long oy) : void
+		}
+
+		class Vector2 {
+			+Vector2()
+			+Vector2(float ix)
+			+Vector2(float ix, float iy)
+			+Vector2(_In_reads_ ( 2 ) const float* pArray)
+			+Vector2(FXMVECTOR V)
+			+Vector2(const XMFLOAT2& V)
+			+Vector2(const XMVECTORF32& F)
+			+Vector2(const Vector2 &)
+			+Vector2(Vector2& &)
+			+operatorXMVECTOR() {query}
+			+{static} Barycentric(const Vector2& v1, const Vector2& v2, const Vector2& v3, float f, float g) : Vector2
+			+{static} CatmullRom(const Vector2& v1, const Vector2& v2, const Vector2& v3, const Vector2& v4, float t) : Vector2
+			+Cross(const Vector2& V) : Vector2 {query}
+			+{static} Hermite(const Vector2& v1, const Vector2& t1, const Vector2& v2, const Vector2& t2, float t) : Vector2
+			+{static} Lerp(const Vector2& v1, const Vector2& v2, float t) : Vector2
+			+{static} Max(const Vector2& v1, const Vector2& v2) : Vector2
+			+{static} Min(const Vector2& v1, const Vector2& v2) : Vector2
+			+{static} Reflect(const Vector2& ivec, const Vector2& nvec) : Vector2
+			+{static} Refract(const Vector2& ivec, const Vector2& nvec, float refractionIndex) : Vector2
+			+{static} SmoothStep(const Vector2& v1, const Vector2& v2, float t) : Vector2
+			+{static} Transform(const Vector2& v, const Quaternion& quat) : Vector2
+			+{static} Transform(const Vector2& v, const Matrix& m) : Vector2
+			+{static} TransformNormal(const Vector2& v, const Matrix& m) : Vector2
+			+operator+() : Vector2 {query}
+			+operator-() : Vector2 {query}
+			+operator*=(const Vector2& V) : Vector2&
+			+operator*=(float S) : Vector2&
+			+operator+=(const Vector2& V) : Vector2&
+			+operator-=(const Vector2& V) : Vector2&
+			+operator/=(float S) : Vector2&
+			+operator=(const Vector2 &) : Vector2&
+			+operator=(Vector2& &) : Vector2&
+			+operator=(const XMVECTORF32& F) : Vector2&
+			+InBounds(const Vector2& Bounds) : bool {query}
+			+operator!=(const Vector2& V) : bool {query}
+			+operator==(const Vector2& V) : bool {query}
+			+{static} Distance(const Vector2& v1, const Vector2& v2) : float
+			+{static} DistanceSquared(const Vector2& v1, const Vector2& v2) : float
+			+Dot(const Vector2& V) : float {query}
+			+Length() : float {query}
+			+LengthSquared() : float {query}
+			+{static} One : static const Vector2
+			+{static} UnitX : static const Vector2
+			+{static} UnitY : static const Vector2
+			+{static} Zero : static const Vector2
+			+{static} Barycentric(const Vector2& v1, const Vector2& v2, const Vector2& v3, float f, float g, Vector2& result) : void
+			+{static} CatmullRom(const Vector2& v1, const Vector2& v2, const Vector2& v3, const Vector2& v4, float t, Vector2& result) : void
+			+Clamp(const Vector2& vmin, const Vector2& vmax) : void
+			+Clamp(const Vector2& vmin, const Vector2& vmax, Vector2& result) : void {query}
+			+Cross(const Vector2& V, Vector2& result) : void {query}
+			+{static} Hermite(const Vector2& v1, const Vector2& t1, const Vector2& v2, const Vector2& t2, float t, Vector2& result) : void
+			+{static} Lerp(const Vector2& v1, const Vector2& v2, float t, Vector2& result) : void
+			+{static} Max(const Vector2& v1, const Vector2& v2, Vector2& result) : void
+			+{static} Min(const Vector2& v1, const Vector2& v2, Vector2& result) : void
+			+Normalize() : void
+			+Normalize(Vector2& result) : void {query}
+			+{static} Reflect(const Vector2& ivec, const Vector2& nvec, Vector2& result) : void
+			+{static} Refract(const Vector2& ivec, const Vector2& nvec, float refractionIndex, Vector2& result) : void
+			+{static} SmoothStep(const Vector2& v1, const Vector2& v2, float t, Vector2& result) : void
+			+{static} Transform(const Vector2& v, const Quaternion& quat, Vector2& result) : void
+			+{static} Transform(const Vector2& v, const Matrix& m, Vector2& result) : void
+			+{static} Transform(_In_reads_ ( count ) const Vector2* varray, size_t count, const Matrix& m, _Out_writes_ ( count ) Vector2* resultArray) : void
+			+{static} Transform(const Vector2& v, const Matrix& m, Vector4& result) : void
+			+{static} Transform(_In_reads_ ( count ) const Vector2* varray, size_t count, const Matrix& m, _Out_writes_ ( count ) Vector4* resultArray) : void
+			+{static} TransformNormal(const Vector2& v, const Matrix& m, Vector2& result) : void
+			+{static} TransformNormal(_In_reads_ ( count ) const Vector2* varray, size_t count, const Matrix& m, _Out_writes_ ( count ) Vector2* resultArray) : void
+		}
+
+		class Vector3 {
+			+Vector3()
+			+Vector3(float ix)
+			+Vector3(float ix, float iy, float iz)
+			+Vector3(_In_reads_ ( 3 ) const float* pArray)
+			+Vector3(FXMVECTOR V)
+			+Vector3(const XMFLOAT3& V)
+			+Vector3(const XMVECTORF32& F)
+			+Vector3(const Vector3 &)
+			+Vector3(Vector3& &)
+			+operatorXMVECTOR() {query}
+			+{static} Barycentric(const Vector3& v1, const Vector3& v2, const Vector3& v3, float f, float g) : Vector3
+			+{static} CatmullRom(const Vector3& v1, const Vector3& v2, const Vector3& v3, const Vector3& v4, float t) : Vector3
+			+Cross(const Vector3& V) : Vector3 {query}
+			+{static} Hermite(const Vector3& v1, const Vector3& t1, const Vector3& v2, const Vector3& t2, float t) : Vector3
+			+{static} Lerp(const Vector3& v1, const Vector3& v2, float t) : Vector3
+			+{static} Max(const Vector3& v1, const Vector3& v2) : Vector3
+			+{static} Min(const Vector3& v1, const Vector3& v2) : Vector3
+			+{static} Reflect(const Vector3& ivec, const Vector3& nvec) : Vector3
+			+{static} Refract(const Vector3& ivec, const Vector3& nvec, float refractionIndex) : Vector3
+			+{static} SmoothStep(const Vector3& v1, const Vector3& v2, float t) : Vector3
+			+{static} Transform(const Vector3& v, const Quaternion& quat) : Vector3
+			+{static} Transform(const Vector3& v, const Matrix& m) : Vector3
+			+{static} TransformNormal(const Vector3& v, const Matrix& m) : Vector3
+			+operator+() : Vector3 {query}
+			+operator-() : Vector3 {query}
+			+operator*=(const Vector3& V) : Vector3&
+			+operator*=(float S) : Vector3&
+			+operator+=(const Vector3& V) : Vector3&
+			+operator-=(const Vector3& V) : Vector3&
+			+operator/=(float S) : Vector3&
+			+operator=(const Vector3 &) : Vector3&
+			+operator=(Vector3& &) : Vector3&
+			+operator=(const XMVECTORF32& F) : Vector3&
+			+InBounds(const Vector3& Bounds) : bool {query}
+			+operator!=(const Vector3& V) : bool {query}
+			+operator==(const Vector3& V) : bool {query}
+			+{static} Distance(const Vector3& v1, const Vector3& v2) : float
+			+{static} DistanceSquared(const Vector3& v1, const Vector3& v2) : float
+			+Dot(const Vector3& V) : float {query}
+			+Length() : float {query}
+			+LengthSquared() : float {query}
+			+{static} Backward : static const Vector3
+			+{static} Down : static const Vector3
+			+{static} Forward : static const Vector3
+			+{static} Left : static const Vector3
+			+{static} One : static const Vector3
+			+{static} Right : static const Vector3
+			+{static} UnitX : static const Vector3
+			+{static} UnitY : static const Vector3
+			+{static} UnitZ : static const Vector3
+			+{static} Up : static const Vector3
+			+{static} Zero : static const Vector3
+			+{static} Barycentric(const Vector3& v1, const Vector3& v2, const Vector3& v3, float f, float g, Vector3& result) : void
+			+{static} CatmullRom(const Vector3& v1, const Vector3& v2, const Vector3& v3, const Vector3& v4, float t, Vector3& result) : void
+			+Clamp(const Vector3& vmin, const Vector3& vmax) : void
+			+Clamp(const Vector3& vmin, const Vector3& vmax, Vector3& result) : void {query}
+			+Cross(const Vector3& V, Vector3& result) : void {query}
+			+{static} Hermite(const Vector3& v1, const Vector3& t1, const Vector3& v2, const Vector3& t2, float t, Vector3& result) : void
+			+{static} Lerp(const Vector3& v1, const Vector3& v2, float t, Vector3& result) : void
+			+{static} Max(const Vector3& v1, const Vector3& v2, Vector3& result) : void
+			+{static} Min(const Vector3& v1, const Vector3& v2, Vector3& result) : void
+			+Normalize() : void
+			+Normalize(Vector3& result) : void {query}
+			+{static} Reflect(const Vector3& ivec, const Vector3& nvec, Vector3& result) : void
+			+{static} Refract(const Vector3& ivec, const Vector3& nvec, float refractionIndex, Vector3& result) : void
+			+{static} SmoothStep(const Vector3& v1, const Vector3& v2, float t, Vector3& result) : void
+			+{static} Transform(const Vector3& v, const Quaternion& quat, Vector3& result) : void
+			+{static} Transform(const Vector3& v, const Matrix& m, Vector3& result) : void
+			+{static} Transform(_In_reads_ ( count ) const Vector3* varray, size_t count, const Matrix& m, _Out_writes_ ( count ) Vector3* resultArray) : void
+			+{static} Transform(const Vector3& v, const Matrix& m, Vector4& result) : void
+			+{static} Transform(_In_reads_ ( count ) const Vector3* varray, size_t count, const Matrix& m, _Out_writes_ ( count ) Vector4* resultArray) : void
+			+{static} TransformNormal(const Vector3& v, const Matrix& m, Vector3& result) : void
+			+{static} TransformNormal(_In_reads_ ( count ) const Vector3* varray, size_t count, const Matrix& m, _Out_writes_ ( count ) Vector3* resultArray) : void
+		}
+
+		class Vector4 {
+			+Vector4()
+			+Vector4(float ix)
+			+Vector4(float ix, float iy, float iz, float iw)
+			+Vector4(_In_reads_ ( 4 ) const float* pArray)
+			+Vector4(FXMVECTOR V)
+			+Vector4(const XMFLOAT4& V)
+			+Vector4(const XMVECTORF32& F)
+			+Vector4(const Vector4 &)
+			+Vector4(Vector4& &)
+			+operatorXMVECTOR() {query}
+			+{static} Barycentric(const Vector4& v1, const Vector4& v2, const Vector4& v3, float f, float g) : Vector4
+			+{static} CatmullRom(const Vector4& v1, const Vector4& v2, const Vector4& v3, const Vector4& v4, float t) : Vector4
+			+Cross(const Vector4& v1, const Vector4& v2) : Vector4 {query}
+			+{static} Hermite(const Vector4& v1, const Vector4& t1, const Vector4& v2, const Vector4& t2, float t) : Vector4
+			+{static} Lerp(const Vector4& v1, const Vector4& v2, float t) : Vector4
+			+{static} Max(const Vector4& v1, const Vector4& v2) : Vector4
+			+{static} Min(const Vector4& v1, const Vector4& v2) : Vector4
+			+{static} Reflect(const Vector4& ivec, const Vector4& nvec) : Vector4
+			+{static} Refract(const Vector4& ivec, const Vector4& nvec, float refractionIndex) : Vector4
+			+{static} SmoothStep(const Vector4& v1, const Vector4& v2, float t) : Vector4
+			+{static} Transform(const Vector2& v, const Quaternion& quat) : Vector4
+			+{static} Transform(const Vector3& v, const Quaternion& quat) : Vector4
+			+{static} Transform(const Vector4& v, const Quaternion& quat) : Vector4
+			+{static} Transform(const Vector4& v, const Matrix& m) : Vector4
+			+operator+() : Vector4 {query}
+			+operator-() : Vector4 {query}
+			+operator*=(const Vector4& V) : Vector4&
+			+operator*=(float S) : Vector4&
+			+operator+=(const Vector4& V) : Vector4&
+			+operator-=(const Vector4& V) : Vector4&
+			+operator/=(float S) : Vector4&
+			+operator=(const Vector4 &) : Vector4&
+			+operator=(Vector4& &) : Vector4&
+			+operator=(const XMVECTORF32& F) : Vector4&
+			+InBounds(const Vector4& Bounds) : bool {query}
+			+operator!=(const Vector4& V) : bool {query}
+			+operator==(const Vector4& V) : bool {query}
+			+{static} Distance(const Vector4& v1, const Vector4& v2) : float
+			+{static} DistanceSquared(const Vector4& v1, const Vector4& v2) : float
+			+Dot(const Vector4& V) : float {query}
+			+Length() : float {query}
+			+LengthSquared() : float {query}
+			+{static} One : static const Vector4
+			+{static} UnitW : static const Vector4
+			+{static} UnitX : static const Vector4
+			+{static} UnitY : static const Vector4
+			+{static} UnitZ : static const Vector4
+			+{static} Zero : static const Vector4
+			+{static} Barycentric(const Vector4& v1, const Vector4& v2, const Vector4& v3, float f, float g, Vector4& result) : void
+			+{static} CatmullRom(const Vector4& v1, const Vector4& v2, const Vector4& v3, const Vector4& v4, float t, Vector4& result) : void
+			+Clamp(const Vector4& vmin, const Vector4& vmax) : void
+			+Clamp(const Vector4& vmin, const Vector4& vmax, Vector4& result) : void {query}
+			+Cross(const Vector4& v1, const Vector4& v2, Vector4& result) : void {query}
+			+{static} Hermite(const Vector4& v1, const Vector4& t1, const Vector4& v2, const Vector4& t2, float t, Vector4& result) : void
+			+{static} Lerp(const Vector4& v1, const Vector4& v2, float t, Vector4& result) : void
+			+{static} Max(const Vector4& v1, const Vector4& v2, Vector4& result) : void
+			+{static} Min(const Vector4& v1, const Vector4& v2, Vector4& result) : void
+			+Normalize() : void
+			+Normalize(Vector4& result) : void {query}
+			+{static} Reflect(const Vector4& ivec, const Vector4& nvec, Vector4& result) : void
+			+{static} Refract(const Vector4& ivec, const Vector4& nvec, float refractionIndex, Vector4& result) : void
+			+{static} SmoothStep(const Vector4& v1, const Vector4& v2, float t, Vector4& result) : void
+			+{static} Transform(const Vector2& v, const Quaternion& quat, Vector4& result) : void
+			+{static} Transform(const Vector3& v, const Quaternion& quat, Vector4& result) : void
+			+{static} Transform(const Vector4& v, const Quaternion& quat, Vector4& result) : void
+			+{static} Transform(const Vector4& v, const Matrix& m, Vector4& result) : void
+			+{static} Transform(_In_reads_ ( count ) const Vector4* varray, size_t count, const Matrix& m, _Out_writes_ ( count ) Vector4* resultArray) : void
+		}
+	}
+}
+'/
+
+
+
+
+/' Inheritance relationships '/
+
+.Component <|-- .Camera
+
+
+.Component <|-- .MeshRenderer
+
+
+.Component <|-- .MonoBehaviour
+
+
+.Component <|-- .Transform
+
+
+.MonoBehaviour <|-- .TestCameraScript
+
+
+
+
+
+/' Aggregation relationships '/
+
+.Camera "1" *-- "2          " DirectX.SimpleMath.Matrix
+
+
+.Camera "1" *-- "1" .PROJECTION_TYPE
+
+
+.CommandQueue *-- .SwapChain
+
+
+.Component "1" *-- "1 " .COMPONENT_TYPE
+
+
+.Component "1" *-- "1" .GameObject
+
+
+.Engine *-- .CommandQueue
+
+
+.Engine *-- .ConstantBuffer
+
+
+.Engine *-- .DepthStencilBuffer
+
+
+.Engine *-- .Device
+
+
+.Engine *-- .RootSignature
+
+
+.Engine *-- .SwapChain
+
+
+.Engine *-- .TableDescriptorHeap
+
+
+.Engine *-- .WindowInfo
+
+
+.GameObject "1" *-- "0..*" .Component
+
+
+.GameObject "1" *-- "0..*" .MonoBehaviour
+
+
+.Input *-- .KEY_STATE
+
+
+.Material *-- .MaterialParams
+
+
+.Material *-- .Shader
+
+
+.Material *-- .Texture
+
+
+DirectX.SimpleMath.Matrix *-- DirectX.SimpleMath.Matrix
+
+
+.MeshRenderer *-- .Material
+
+
+.MeshRenderer *-- .Mesh
+
+
+.Scene "1" *-- "0..*" .GameObject
+
+
+.SceneManager "1" *-- "1" .Scene
+
+
+.Transform "1" *-- "1" .Transform
+
+
+.TransformParams "1" *-- "1" DirectX.SimpleMath.Matrix
+
+
+/' Dependency relationships '/
+
+.CBV_REGISTER <.. .ConstantBuffer
+
+
+.CBV_REGISTER <.. .Engine
+
+
+.CBV_REGISTER <.. .TableDescriptorHeap
+
+
+.CBV_REGISTER <.. .TableDescriptorHeap
+
+
+.CD3DX12_DEFAULT <.. .CD3DX12_BLEND_DESC
+
+
+.CD3DX12_DEFAULT <.. .CD3DX12_CPU_DESCRIPTOR_HANDLE
+
+
+.CD3DX12_DEFAULT <.. .CD3DX12_DEPTH_STENCIL_DESC
+
+
+.CD3DX12_DEFAULT <.. .CD3DX12_GPU_DESCRIPTOR_HANDLE
+
+
+.CD3DX12_DEFAULT <.. .CD3DX12_RASTERIZER_DESC
+
+
+.CD3DX12_DEFAULT <.. .CD3DX12_ROOT_SIGNATURE_DESC
+
+
+.COMPONENT_TYPE <.. .Component
+
+
+.COMPONENT_TYPE <.. .GameObject
+
+
+.CONSTANT_BUFFER_TYPE <.. .Engine
+
+.CommandQueue <.. .SwapChain
+
+
+.CommandQueue <.. .SwapChain
+
+
+.Component <.. .GameObject
+
+
+.Device <.. .CD3DX12_RESOURCE_DESC
+
+
+.Device <.. .CD3DX12_RESOURCE_DESC
+
+
+.Device <.. .CommandQueue
+
+
+.Device <.. .SwapChain
+
+
+.Device <.. .SwapChain
+
+
+.GameObject <.. .Component
+
+
+.GameObject <.. .Scene
+
+
+.GameObject <.. .Scene
+
+
+.KEY_TYPE <.. .Input
+
+
+.KEY_TYPE <.. .Input
+
+
+.KEY_TYPE <.. .Input
+
+
+.KEY_TYPE <.. .Input
+
+
+.Material <.. .MeshRenderer
+
+
+.Mesh <.. .MeshRenderer
+
+
+.SRV_REGISTER <.. .TableDescriptorHeap
+
+
+.SRV_REGISTER <.. .TableDescriptorHeap
+
+
+.Shader <.. .Material
+
+
+.SwapChain <.. .CommandQueue
+
+
+.Texture <.. .Material
+
+
+.Transform <.. .Transform
+
+
+.Vertex <.. .Mesh
+
+
+.Vertex <.. .Mesh
+
+
+.WindowInfo <.. .DepthStencilBuffer
+
+
+.WindowInfo <.. .Engine
+
+
+.WindowInfo <.. .SwapChain
+
+
+.WindowInfo <.. .SwapChain
+
+
+/' Nested objects '/
+
+
+
+@enduml
