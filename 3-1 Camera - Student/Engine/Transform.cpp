@@ -21,10 +21,10 @@ void Transform::FinalUpdate()
 	matScale.CreateScale(_localScale);
 	//DECLARE a variable called matRotation of type Matrix and set it to a matrix from _localRotation.x
 	Matrix matRotation = Matrix();
-	matRotation.CreateRotationX(_localRotation.x);
+	matRotation = matRotation.CreateRotationX(_localRotation.x);
 	//MULTIPLY matRotation by a matrix from _localRotation.y
 	Matrix yrot = Matrix();
-	yrot.CreateRotationY(_localRotation.y);
+	yrot = yrot.CreateRotationY(_localRotation.y);
 	matRotation *= yrot;
 	//MULTIPLY matRotation by a matrix from _localRotation.z
 	Matrix zrot = Matrix();
@@ -32,7 +32,7 @@ void Transform::FinalUpdate()
 	matRotation *= zrot;
 	//DECLARE a variable called matTranslation of type Matrix and set it to a matrix from _localPosition
 	Matrix matTranslation = Matrix();
-	matTranslation.CreateTranslation(_localPosition);
+	matTranslation = matTranslation.CreateTranslation(_localPosition);
 
 	//SET _matLocal, it is the product of  matScale, matRotation, matTranslation
 	_matLocal = matScale * matRotation * matTranslation;

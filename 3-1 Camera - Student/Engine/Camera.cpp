@@ -21,7 +21,7 @@ Camera::~Camera()
 void Camera::FinalUpdate()
 {
 	//ASSIGN _matView to the transforms Local To World Matrix's inverse
-	_matView = GetTransform()->GetLocalToWorldMatrix().Invert();
+	_matView = GetTransform()->GetLocalToWorldMatrix().Invert();;
 
 	//DECLARE a variable called  width of type float and assign it to the return value of GEngine->GetWindow().width, static_cast GEngine->GetWindow().width
 	float width = static_cast<float>(GEngine->GetWindow().width);
@@ -32,7 +32,7 @@ void Camera::FinalUpdate()
 	//IF _type IS EQUAL TO PROJECTION_TYPE::PERSPECTIVE
 	if (_type == PROJECTION_TYPE::PERSPECTIVE)
 		//ASSIGN _matProjection to the return value of ::XMMatrixPerspectiveFovLH(?, ?, ?, ?)
-		_matProjection = ::XMMatrixPerspectiveFovLH(_fov, _scale, _near, _far);
+		_matProjection = ::XMMatrixPerspectiveFovLH(_fov, width/height, _near, _far);
 	//ELSE
 	else
 		//ASSIGN _matProjection to the return value of ::XMMatrixOrthographicLH(?, ?, ?, ?)

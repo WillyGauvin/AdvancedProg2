@@ -18,7 +18,7 @@ void MeshRenderer::Render()
 {
 	//STEP 12 - IMPL
 	//PUSH the transform data
-	 
+	GetTransform()->PushData();
 	//CALL PushData() on _material
 	_material->PushData();//STEP 12 - LOOK AT 
 	//CALL Render() on _mesh
